@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { addBanner, updateBanner } from "@/lib/actions";
+import ActionForm from "@/components/ActionForm";
 import { BANNER_FONTS, BANNER_POS_X, BANNER_POS_Y } from "@/lib/format";
 import type { Banner } from "@/lib/db";
 
@@ -36,7 +37,12 @@ export default function BannerForm({ banner }: { banner?: Banner }) {
     "w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 transition focus:border-lime-400 focus:outline-none";
 
   return (
-    <form action={banner ? updateBanner : addBanner} className="space-y-2.5">
+    <ActionForm
+      action={banner ? updateBanner : addBanner}
+      success={banner ? "Реклам хадгалагдлаа" : "Реклам нэмэгдлээ"}
+      resetOnSuccess={!banner}
+      className="space-y-2.5"
+    >
       {banner && <input type="hidden" name="id" value={banner.id} />}
       <input type="hidden" name="pos_x" value={posX} />
       <input type="hidden" name="pos_y" value={posY} />
@@ -189,9 +195,9 @@ export default function BannerForm({ banner }: { banner?: Banner }) {
         </div>
       </div>
 
-      <button className="w-full rounded-xl bg-lime-400 px-4 py-2 text-sm font-bold text-zinc-950 transition hover:bg-lime-300">
+      <button className="w-full rounded-xl bg-lime-400 px-4 py-2 text-sm font-bold text-zinc-950 transition hover:bg-lime-300 disabled:opacity-50">
         {banner ? "Хадгалах" : "+ Реклам нэмэх"}
       </button>
-    </form>
+    </ActionForm>
   );
 }

@@ -1,6 +1,7 @@
 import db, { Category } from "@/lib/db";
 import { addCategory, updateCategory, deleteCategory, removeCategoryImage } from "@/lib/actions";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
+import ActionForm from "@/components/ActionForm";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +22,10 @@ export default async function AdminCategories() {
     <div>
       <h1 className="font-display mb-4 text-xl font-extrabold uppercase">Категориуд</h1>
 
-      <form
+      <ActionForm
         action={addCategory}
+        success="Категори нэмэгдлээ"
+        resetOnSuccess
         className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900 p-3"
       >
         <input name="name" required placeholder="Шинэ категорийн нэр..." className={`flex-1 ${input}`} />
@@ -30,7 +33,7 @@ export default async function AdminCategories() {
         <button className="rounded-xl bg-lime-400 px-4 py-1.5 text-sm font-bold text-zinc-950 transition hover:bg-lime-300">
           + Нэмэх
         </button>
-      </form>
+      </ActionForm>
 
       <div className="mb-3 text-xs text-zinc-500">
         Нэрийг өөрчлөөд «Хадгалах» дарна. Зураг оруулбал нүүр хуудасны категорийн товч дээр харагдана.
@@ -51,14 +54,14 @@ export default async function AdminCategories() {
                 🏷️
               </div>
             )}
-            <form action={updateCategory} className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <ActionForm action={updateCategory} className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               <input type="hidden" name="id" value={c.id} />
               <input name="name" required defaultValue={c.name} className={`w-44 ${input}`} />
               <input name="image" type="file" accept="image/*" className={`max-w-52 ${input}`} />
               <button className="rounded-xl bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-950 transition hover:bg-lime-400">
                 Хадгалах
               </button>
-            </form>
+            </ActionForm>
             <span className="shrink-0 text-xs text-zinc-500">{c.product_count} бараа</span>
             {c.image && (
               <form action={removeCategoryImage}>

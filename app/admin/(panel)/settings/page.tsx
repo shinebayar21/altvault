@@ -2,6 +2,7 @@ import { getSettings } from "@/lib/db";
 import { saveSettings } from "@/lib/actions";
 import { qpayEnabled } from "@/lib/qpay";
 import CleanupButton from "@/components/CleanupButton";
+import ActionForm from "@/components/ActionForm";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export default async function AdminSettings() {
   return (
     <div>
       <h1 className="font-display mb-4 text-xl font-extrabold uppercase">Тохиргоо</h1>
-      <form action={saveSettings} className="max-w-xl space-y-4">
+      <ActionForm action={saveSettings} success="Тохиргоо хадгалагдлаа" className="max-w-xl space-y-4">
         <div className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
           <div>
             <label className="mb-1 block text-sm font-medium text-zinc-300">Дэлгүүрийн нэр</label>
@@ -83,10 +84,10 @@ export default async function AdminSettings() {
           )}
         </div>
 
-        <button className="rounded-xl bg-lime-400 px-8 py-2.5 font-bold uppercase tracking-wide text-zinc-950 transition hover:bg-lime-300">
+        <button className="rounded-xl bg-lime-400 px-8 py-2.5 font-bold uppercase tracking-wide text-zinc-950 transition hover:bg-lime-300 disabled:opacity-50">
           Хадгалах
         </button>
-      </form>
+      </ActionForm>
 
       <div className="mt-6 max-w-xl space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
         <div className="text-sm font-semibold uppercase tracking-wider text-zinc-400">
