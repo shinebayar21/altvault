@@ -86,6 +86,7 @@ export function allCombos(colors: string[], sizes: string[]): string[] {
 export const STATUS_LABEL: Record<string, string> = {
   pending: "Төлбөр хүлээгдэж буй",
   paid: "Төлөгдсөн",
+  delivering: "Хүргэлтэнд гарсан",
   delivered: "Хүргэгдсэн",
   cancelled: "Цуцлагдсан",
 };
@@ -93,6 +94,7 @@ export const STATUS_LABEL: Record<string, string> = {
 export const STATUS_COLOR: Record<string, string> = {
   pending: "bg-amber-400/15 text-amber-400 border border-amber-400/30",
   paid: "bg-lime-400/15 text-lime-400 border border-lime-400/30",
+  delivering: "bg-violet-400/15 text-violet-400 border border-violet-400/30",
   delivered: "bg-sky-400/15 text-sky-400 border border-sky-400/30",
   cancelled: "bg-red-400/15 text-red-400 border border-red-400/30",
 };

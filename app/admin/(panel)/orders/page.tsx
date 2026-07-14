@@ -1,6 +1,7 @@
 import db, { Order, OrderItem } from "@/lib/db";
 import { tugrug, STATUS_LABEL, STATUS_COLOR } from "@/lib/format";
 import { setOrderStatus } from "@/lib/actions";
+import OrderStatusSelect from "@/components/OrderStatusSelect";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +56,7 @@ export default async function AdminOrders({
     { key: "", label: "Бүгд" },
     { key: "pending", label: "Хүлээгдэж буй" },
     { key: "paid", label: "Төлөгдсөн" },
+    { key: "delivering", label: "Хүргэлтэнд" },
     { key: "delivered", label: "Хүргэгдсэн" },
     { key: "cancelled", label: "Цуцлагдсан" },
   ];
@@ -166,9 +168,16 @@ export default async function AdminOrders({
                     </form>
                   )}
                   {o.status === "paid" && (
+                    <form action={setOrderStatus.bind(null, o.id, "delivering")}>
+                      <button className="rounded-xl bg-violet-500 px-4 py-1.5 text-sm font-bold text-white transition hover:bg-violet-400">
+                        🚚 Хүргэлтэнд гаргах
+                      </button>
+                    </form>
+                  )}
+                  {o.status === "delivering" && (
                     <form action={setOrderStatus.bind(null, o.id, "delivered")}>
                       <button className="rounded-xl bg-sky-500 px-4 py-1.5 text-sm font-bold text-white transition hover:bg-sky-400">
-                        🚚 Хүргэгдсэн болгох
+                        ✅ Хүргэгдсэн болгох
                       </button>
                     </form>
                   )}
@@ -186,6 +195,7 @@ export default async function AdminOrders({
                       </button>
                     </form>
                   )}
+                  <OrderStatusSelect orderId={o.id} status={o.status} />
                 </div>
               </div>
             );

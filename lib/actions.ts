@@ -52,7 +52,7 @@ export async function logoutAction() {
 // Үлдэгдэл тооцдоггүй (захиалга авч өгдөг сайт) тул статус солиход stock-д нөлөөлөхгүй
 export async function setOrderStatus(orderId: number, status: string) {
   await requireAdmin();
-  if (!["pending", "paid", "delivered", "cancelled"].includes(status)) return;
+  if (!["pending", "paid", "delivering", "delivered", "cancelled"].includes(status)) return;
   const order = db.prepare("SELECT id FROM orders WHERE id = ?").get(orderId);
   if (!order) return;
   db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, orderId);
