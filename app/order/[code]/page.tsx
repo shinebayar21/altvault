@@ -21,6 +21,18 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
 
   const isPaid = ["paid", "delivering", "delivered"].includes(order.status);
 
+  // qpay_url: шинэ формат нь JSON массив [{name,link}], хуучин нь ганц deeplink мөр
+  let payLinks: { name: string; link: string }[] = [];
+  if (order.qpay_url) {
+    if (order.qpay_url.startsWith("[")) {
+      try {
+        payLinks = JSON.parse(order.qpay_url);
+      } catch {}
+    } else {
+      payLinks = [{ name: "Утаснаасаа төлөх", link: order.qpay_url }];
+    }
+  }
+
   return (
     <div className="mx-auto max-w-2xl">
       <CartClearOnPaid code={order.code} paid={isPaid} />
@@ -71,13 +83,23 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
                 <p className="mt-3 text-sm text-zinc-400">
                   Банкны аппликейшнээрээ QR кодыг уншуулж төлнө үү.
                 </p>
-                {order.qpay_url && (
-                  <a
-                    href={order.qpay_url}
-                    className="mt-3 inline-block text-sm text-lime-400 underline"
-                  >
-                    Утаснаасаа төлөх бол энд дарна уу
-                  </a>
+                {payLinks.length > 0 && (
+                  <div className="mt-4">
+                    <div className="mb-2 text-xs text-zinc-500">
+                      📲 Утсан дээрээс үзэж байгаа бол банкны аппаа сонгоод дарна уу:
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {payLinks.map((u) => (
+                        <a
+                          key={u.name}
+                          href={u.link}
+                          className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300 transition hover:border-lime-400 hover:text-lime-400"
+                        >
+                          {u.name}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
                 )}
                 <div className="mt-4">
                   <CheckPaymentButton code={order.code} />

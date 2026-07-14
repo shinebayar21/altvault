@@ -81,21 +81,18 @@ export async function POST(req: NextRequest) {
   // QR төлбөр — 1-рт Wire (тохируулсан бол), эс бөгөөс QPay-direct
   if (method === "qpay") {
     try {
+      // qpay_url-д банкны аппуудын deeplink-үүдийг JSON массиваар хадгална
       if (wireEnabled()) {
         const pay = await createWirePayment(code, total);
-        const payUrl =
-          pay.urls.find((u) => u.name?.toLowerCase().includes("qpay"))?.link ||
-          pay.urls[0]?.link ||
-          "";
         db.prepare(
           "UPDATE orders SET qpay_invoice_id = ?, qpay_qr = ?, qpay_url = ?, pay_provider = 'wire' WHERE code = ?"
-        ).run(pay.intentId, pay.qrImage, payUrl, code);
+        ).run(pay.intentId, pay.qrImage, JSON.stringify(pay.urls), code);
       } else {
         const inv = await createInvoice(code, total, `Захиалга ${code}`);
-        const payUrl = inv.urls?.find((u) => u.name?.toLowerCase().includes("qpay"))?.link || "";
+        const urls = (inv.urls || []).map((u) => ({ name: u.name, link: u.link }));
         db.prepare(
           "UPDATE orders SET qpay_invoice_id = ?, qpay_qr = ?, qpay_url = ?, pay_provider = 'qpay' WHERE code = ?"
-        ).run(inv.invoice_id, inv.qr_image || "", payUrl, code);
+        ).run(inv.invoice_id, inv.qr_image || "", JSON.stringify(urls), code);
       }
     } catch (e) {
       console.error("Payment invoice error:", e);
