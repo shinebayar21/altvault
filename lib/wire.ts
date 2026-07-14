@@ -30,7 +30,7 @@ export type WirePayment = {
   intentId: string;
   qrImage: string; // base64 PNG (data: угтваргүй)
   qrText: string;
-  urls: { name: string; link: string }[];
+  urls: { name: string; link: string; logo: string }[];
 };
 
 /** PaymentIntent үүсгээд QPay operator руу confirm хийж QR-ийг буцаана */
@@ -67,14 +67,15 @@ export async function createWirePayment(orderCode: string, amount: number): Prom
   const na = confirmed.next_action || {};
   let qrImage = "";
   let qrText = "";
-  let urls: { name: string; link: string }[] = [];
+  let urls: { name: string; link: string; logo: string }[] = [];
   if (na.type === "qr" && na.qr) {
     // image_url нь бүтэн data:image/png;base64,... тул угтварыг хасна
     qrImage = (na.qr.image_url || "").replace(/^data:image\/[a-z]+;base64,/, "");
     qrText = na.qr.text || "";
-    urls = (na.qr.deeplinks || []).map((d: { name: string; link: string }) => ({
+    urls = (na.qr.deeplinks || []).map((d: { name: string; link: string; logo?: string }) => ({
       name: d.name,
       link: d.link,
+      logo: d.logo || "",
     }));
   }
   return { intentId: intent.id, qrImage, qrText, urls };

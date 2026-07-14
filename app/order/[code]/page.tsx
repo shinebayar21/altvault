@@ -21,8 +21,8 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
 
   const isPaid = ["paid", "delivering", "delivered"].includes(order.status);
 
-  // qpay_url: шинэ формат нь JSON массив [{name,link}], хуучин нь ганц deeplink мөр
-  let payLinks: { name: string; link: string }[] = [];
+  // qpay_url: шинэ формат нь JSON массив [{name,link,logo}], хуучин нь ганц deeplink мөр
+  let payLinks: { name: string; link: string; logo?: string }[] = [];
   if (order.qpay_url) {
     if (order.qpay_url.startsWith("[")) {
       try {
@@ -93,8 +93,12 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
                         <a
                           key={u.name}
                           href={u.link}
-                          className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300 transition hover:border-lime-400 hover:text-lime-400"
+                          className="flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-xs text-zinc-300 transition hover:border-lime-400 hover:text-lime-400"
                         >
+                          {u.logo && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={u.logo} alt="" className="h-5 w-5 rounded-md object-contain" />
+                          )}
                           {u.name}
                         </a>
                       ))}

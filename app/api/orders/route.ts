@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
         ).run(pay.intentId, pay.qrImage, JSON.stringify(pay.urls), code);
       } else {
         const inv = await createInvoice(code, total, `Захиалга ${code}`);
-        const urls = (inv.urls || []).map((u) => ({ name: u.name, link: u.link }));
+        const urls = (inv.urls || []).map((u) => ({ name: u.name, link: u.link, logo: u.logo || "" }));
         db.prepare(
           "UPDATE orders SET qpay_invoice_id = ?, qpay_qr = ?, qpay_url = ?, pay_provider = 'qpay' WHERE code = ?"
         ).run(inv.invoice_id, inv.qr_image || "", JSON.stringify(urls), code);

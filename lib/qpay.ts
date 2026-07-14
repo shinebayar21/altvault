@@ -30,7 +30,7 @@ export type QPayInvoice = {
   invoice_id: string;
   qr_text: string;
   qr_image: string; // base64 PNG
-  urls: { name: string; description: string; link: string }[];
+  urls: { name: string; description: string; link: string; logo?: string }[];
 };
 
 export async function createInvoice(orderCode: string, amount: number, description: string): Promise<QPayInvoice> {
