@@ -34,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     <span className="text-lime-400">.</span>
                   </div>
                   <p className="mt-2 max-w-xs text-sm text-zinc-500">
-                    Шинэ үеийн пүүзний дэлгүүр. Гудамжны соёл, спортын хүч — нэг дор.
+                    Пүүзний нууц агуулах.
                   </p>
                 </div>
                 <div className="text-sm text-zinc-400">
