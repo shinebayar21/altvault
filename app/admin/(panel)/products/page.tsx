@@ -1,6 +1,7 @@
 import db, { Product } from "@/lib/db";
 import { tugrug } from "@/lib/format";
-import { deleteProduct, restoreProduct, addCategory } from "@/lib/actions";
+import ToggleActive from "@/components/ToggleActive";
+import VariantMatrix from "@/components/VariantMatrix";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -9,64 +10,72 @@ export default async function AdminProducts() {
   const products = db
     .prepare(
       `SELECT p.*, c.name as category_name FROM products p
-       LEFT JOIN categories c ON c.id = p.category_id ORDER BY p.active DESC, p.created_at DESC`
+       LEFT JOIN categories c ON c.id = p.category_id ORDER BY p.created_at DESC`
     )
     .all() as Product[];
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold">Бараанууд</h1>
-        <Link
-          href="/admin/products/new"
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700"
-        >
-          + Шинэ бараа
-        </Link>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="font-display text-xl font-extrabold uppercase">Бараанууд</h1>
+        <div className="flex gap-2">
+          <Link
+            href="/admin/categories"
+            className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-lime-400 hover:text-lime-400"
+          >
+            🏷️ Категори удирдах
+          </Link>
+          <Link
+            href="/admin/products/new"
+            className="rounded-xl bg-lime-400 px-4 py-2 text-sm font-bold text-zinc-950 transition hover:bg-lime-300"
+          >
+            + Шинэ бараа
+          </Link>
+        </div>
       </div>
 
-      <form
-        action={addCategory}
-        className="mb-4 flex gap-2 bg-white rounded-xl border border-slate-200 p-3"
-      >
-        <input
-          name="name"
-          placeholder="Шинэ категори нэмэх..."
-          className="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-indigo-500"
-        />
-        <button className="text-sm bg-slate-800 text-white px-4 rounded-lg">Нэмэх</button>
-      </form>
+      <div className="mb-3 text-xs text-zinc-500">
+        Ногоон toggle = веб талд харагдана, унтраавал нуугдана. Доорх матрицын нүд бүр нэг өнгө ×
+        размер хослол: <span className="text-lime-400">ногоон = байгаа</span>,{" "}
+        <span className="text-red-400 line-through">улаан = дууссан</span> — дарж солино. Өнгөний
+        нэр дээр дарвал тухайн өнгө бүхэлдээ солигдоно.
+      </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
+      <div className="divide-y divide-zinc-800 rounded-2xl border border-zinc-800 bg-zinc-900">
         {products.map((p) => (
-          <div key={p.id} className={`flex items-center gap-4 p-3 ${!p.active ? "opacity-50" : ""}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover bg-slate-100" />
-            <div className="flex-1 min-w-0">
-              <div className="font-medium truncate">
-                {p.name}
-                {!p.active && <span className="text-xs text-red-500 ml-2">(идэвхгүй)</span>}
+          <div key={p.id} className={`p-3 ${!p.active ? "bg-zinc-950/50" : ""}`}>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <ToggleActive id={p.id} active={!!p.active} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={p.image}
+                alt={p.name}
+                className={`h-12 w-12 shrink-0 rounded-xl bg-zinc-800 object-cover ${!p.active ? "opacity-40 grayscale" : ""}`}
+              />
+              <div className="min-w-0 flex-1">
+                <div className={`truncate font-medium ${!p.active ? "text-zinc-500" : ""}`}>
+                  {p.name}
+                  {!p.active && (
+                    <span className="ml-2 rounded-full border border-zinc-700 px-2 py-0.5 text-[11px] font-normal text-zinc-500">
+                      нуугдсан
+                    </span>
+                  )}
+                </div>
+                <div className="truncate text-xs text-zinc-500">
+                  {p.category_name || "Категоригүй"}
+                </div>
               </div>
-              <div className="text-xs text-slate-500">
-                {p.category_name || "Категоригүй"} · Үлдэгдэл: {p.stock}
-              </div>
+              <div className="shrink-0 text-right text-sm font-medium">{tugrug(p.price)}</div>
+              <Link
+                href={`/admin/products/${p.id}`}
+                className="shrink-0 rounded-xl border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 transition hover:border-lime-400 hover:text-lime-400"
+              >
+                Засах
+              </Link>
             </div>
-            <div className="font-medium text-sm w-24 text-right">{tugrug(p.price)}</div>
-            <Link
-              href={`/admin/products/${p.id}`}
-              className="text-sm text-indigo-600 hover:underline"
-            >
-              Засах
-            </Link>
-            {p.active ? (
-              <form action={deleteProduct.bind(null, p.id)}>
-                <button className="text-sm text-red-500 hover:underline">Хаах</button>
-              </form>
-            ) : (
-              <form action={restoreProduct.bind(null, p.id)}>
-                <button className="text-sm text-green-600 hover:underline">Сэргээх</button>
-              </form>
-            )}
+            <div className="mt-2 pl-14 sm:pl-[60px]">
+              <VariantMatrix id={p.id} colors={p.colors} sizes={p.sizes} variantsOut={p.variants_out} />
+            </div>
           </div>
         ))}
       </div>

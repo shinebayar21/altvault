@@ -5,25 +5,51 @@ import Link from "next/link";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdmin();
   return (
-    <div className="grid md:grid-cols-[200px_1fr] gap-6">
-      <aside className="bg-white rounded-xl border border-slate-200 p-4 h-fit md:sticky md:top-20">
-        <div className="font-bold text-indigo-600 mb-4">⚙️ Админ</div>
+    <div className="grid gap-6 md:grid-cols-[210px_1fr]">
+      <aside className="h-fit rounded-2xl border border-zinc-800 bg-zinc-900 p-4 md:sticky md:top-20">
+        <div className="font-display mb-4 font-bold uppercase tracking-wide">
+          ⚙️ Админ<span className="text-lime-400">.</span>
+        </div>
         <nav className="space-y-1 text-sm">
-          <Link href="/admin" className="block px-3 py-2 rounded-lg hover:bg-slate-100">
+          <Link
+            href="/admin"
+            className="block rounded-xl px-3 py-2 text-zinc-300 transition hover:bg-zinc-800 hover:text-lime-400"
+          >
             📊 Хянах самбар
           </Link>
-          <Link href="/admin/orders" className="block px-3 py-2 rounded-lg hover:bg-slate-100">
+          <Link
+            href="/admin/orders"
+            className="block rounded-xl px-3 py-2 text-zinc-300 transition hover:bg-zinc-800 hover:text-lime-400"
+          >
             📦 Захиалгууд
           </Link>
-          <Link href="/admin/products" className="block px-3 py-2 rounded-lg hover:bg-slate-100">
-            🏷️ Бараанууд
+          <Link
+            href="/admin/products"
+            className="block rounded-xl px-3 py-2 text-zinc-300 transition hover:bg-zinc-800 hover:text-lime-400"
+          >
+            👟 Бараанууд
           </Link>
-          <Link href="/admin/settings" className="block px-3 py-2 rounded-lg hover:bg-slate-100">
+          <Link
+            href="/admin/categories"
+            className="block rounded-xl px-3 py-2 text-zinc-300 transition hover:bg-zinc-800 hover:text-lime-400"
+          >
+            🏷️ Категориуд
+          </Link>
+          <Link
+            href="/admin/banners"
+            className="block rounded-xl px-3 py-2 text-zinc-300 transition hover:bg-zinc-800 hover:text-lime-400"
+          >
+            🖼️ Реклам
+          </Link>
+          <Link
+            href="/admin/settings"
+            className="block rounded-xl px-3 py-2 text-zinc-300 transition hover:bg-zinc-800 hover:text-lime-400"
+          >
             🔧 Тохиргоо
           </Link>
         </nav>
-        <form action={logoutAction} className="mt-4 pt-3 border-t border-slate-100">
-          <button className="text-sm text-red-500 hover:text-red-700 px-3">Гарах</button>
+        <form action={logoutAction} className="mt-4 border-t border-zinc-800 pt-3">
+          <button className="px-3 text-sm text-red-400 transition hover:text-red-300">Гарах</button>
         </form>
       </aside>
       <div>{children}</div>

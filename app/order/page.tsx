@@ -4,28 +4,40 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function OrderLookup() {
-  const [code, setCode] = useState("");
+  const [value, setValue] = useState("");
   const router = useRouter();
+
+  const submit = () => {
+    const v = value.trim();
+    if (!v) return;
+    const digits = v.replace(/[\s\-+()]/g, "");
+    // Зөвхөн тооноос бүрдсэн бол утасны дугаар гэж үзнэ
+    if (/^\d{6,}$/.test(digits)) router.push(`/order/phone/${digits}`);
+    else router.push(`/order/${v.toUpperCase()}`);
+  };
+
   return (
-    <div className="max-w-md mx-auto py-16 text-center">
-      <h1 className="text-xl font-bold mb-2">Захиалга шалгах</h1>
-      <p className="text-sm text-slate-500 mb-6">
-        Захиалгын кодоо оруулна уу (жишээ нь: SH3F2A1B)
+    <div className="mx-auto max-w-md py-16 text-center">
+      <h1 className="font-display mb-2 text-2xl font-extrabold uppercase">Захиалга шалгах</h1>
+      <p className="mb-6 text-sm text-zinc-500">
+        Захиалгын код (жишээ нь: SH3F2A1B) эсвэл захиалга өгсөн утасны дугаараа оруулна уу
       </p>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (code.trim()) router.push(`/order/${code.trim().toUpperCase()}`);
+          submit();
         }}
         className="flex gap-2"
       >
         <input
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="Захиалгын код"
-          className="flex-1 border border-slate-300 rounded-lg px-4 py-2.5 bg-white focus:outline-indigo-500"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="Захиалгын код эсвэл утасны дугаар"
+          className="flex-1 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-zinc-100 placeholder-zinc-600 transition focus:border-lime-400 focus:outline-none"
         />
-        <button className="bg-indigo-600 text-white px-6 rounded-lg hover:bg-indigo-700">Шалгах</button>
+        <button className="rounded-xl bg-lime-400 px-6 font-bold text-zinc-950 transition hover:bg-lime-300">
+          Шалгах
+        </button>
       </form>
     </div>
   );

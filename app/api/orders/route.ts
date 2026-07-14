@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import db, { Product } from "@/lib/db";
+import { splitList, variantKey, parseVariantsOut } from "@/lib/format";
 import { qpayEnabled, createInvoice } from "@/lib/qpay";
 import { randomBytes } from "crypto";
 
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
     address: string;
     note?: string;
     payment_method: string;
-    items: { id: number; qty: number }[];
+    items: { id: number; qty: number; size?: string; color?: string }[];
   };
 
   if (!customer_name?.trim() || !phone?.trim() || !address?.trim())
@@ -25,19 +26,30 @@ export async function POST(req: NextRequest) {
 
   // Барааг сервер талд шалгаж, үнийг DB-ээс авна
   const getProd = db.prepare("SELECT * FROM products WHERE id = ? AND active = 1");
-  const lines: { product: Product; qty: number }[] = [];
+  const lines: { product: Product; qty: number; size: string; color: string }[] = [];
   for (const it of items) {
     const p = getProd.get(it.id) as Product | undefined;
     if (!p) return NextResponse.json({ error: "Бараа олдсонгүй" }, { status: 400 });
     const qty = Math.floor(Number(it.qty));
     if (!qty || qty < 1)
       return NextResponse.json({ error: "Тоо ширхэг буруу байна" }, { status: 400 });
-    if (qty > p.stock)
+    const size = String(it.size || "").trim();
+    const color = String(it.color || "").trim();
+    const sizes = splitList(p.sizes);
+    const colors = splitList(p.colors);
+    const outSet = parseVariantsOut(p.variants_out);
+    if (sizes.length > 0 && !sizes.includes(size))
+      return NextResponse.json({ error: `"${p.name}" барааны размер сонгогдоогүй байна` }, { status: 400 });
+    if (colors.length > 0 && !colors.includes(color))
+      return NextResponse.json({ error: `"${p.name}" барааны өнгө сонгогдоогүй байна` }, { status: 400 });
+    if ((colors.length > 0 || sizes.length > 0) && outSet.has(variantKey(color, size)))
       return NextResponse.json(
-        { error: `"${p.name}" барааны үлдэгдэл хүрэлцэхгүй (${p.stock} ширхэг үлдсэн)` },
+        {
+          error: `"${p.name}" барааны ${[color, size && `${size} размер`].filter(Boolean).join(", ")} дууссан байна`,
+        },
         { status: 400 }
       );
-    lines.push({ product: p, qty });
+    lines.push({ product: p, qty, size, color });
   }
 
   const total = lines.reduce((s, l) => s + l.product.price * l.qty, 0);
@@ -55,12 +67,11 @@ export async function POST(req: NextRequest) {
       .run(code, customer_name.trim(), phone.trim(), address.trim(), (note || "").trim(), total, method);
     const orderId = Number(r.lastInsertRowid);
     const insItem = db.prepare(
-      "INSERT INTO order_items (order_id, product_id, product_name, price, qty) VALUES (?, ?, ?, ?, ?)"
+      "INSERT INTO order_items (order_id, product_id, product_name, price, qty, size, color) VALUES (?, ?, ?, ?, ?, ?, ?)"
     );
-    const decStock = db.prepare("UPDATE products SET stock = stock - ? WHERE id = ?");
+    // Үлдэгдэл тооцдоггүй тул stock-оос хасахгүй
     for (const l of lines) {
-      insItem.run(orderId, l.product.id, l.product.name, l.product.price, l.qty);
-      decStock.run(l.qty, l.product.id);
+      insItem.run(orderId, l.product.id, l.product.name, l.product.price, l.qty, l.size, l.color);
     }
     return orderId;
   });

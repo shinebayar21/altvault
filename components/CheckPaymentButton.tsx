@@ -30,11 +30,11 @@ export default function CheckPaymentButton({ code }: { code: string }) {
       <button
         onClick={check}
         disabled={loading}
-        className="bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm hover:bg-indigo-700 disabled:opacity-50"
+        className="rounded-xl bg-lime-400 px-6 py-2 text-sm font-bold text-zinc-950 transition hover:bg-lime-300 disabled:opacity-50"
       >
         {loading ? "Шалгаж байна..." : "Төлбөр шалгах"}
       </button>
-      {msg && <p className="text-sm text-amber-700 mt-2">{msg}</p>}
+      {msg && <p className="mt-2 text-sm text-amber-400">{msg}</p>}
     </div>
   );
 }

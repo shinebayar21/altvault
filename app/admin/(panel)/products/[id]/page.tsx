@@ -13,7 +13,7 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
   const categories = db.prepare("SELECT * FROM categories ORDER BY name").all() as Category[];
   return (
     <div>
-      <h1 className="text-xl font-bold mb-4">Бараа засах</h1>
+      <h1 className="font-display mb-4 text-xl font-extrabold uppercase">Бараа засах</h1>
       <ProductForm product={product} categories={categories} />
     </div>
   );

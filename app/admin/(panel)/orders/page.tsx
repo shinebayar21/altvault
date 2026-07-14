@@ -8,17 +8,47 @@ export const dynamic = "force-dynamic";
 export default async function AdminOrders({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; from?: string; to?: string; phone?: string }>;
 }) {
-  const { status } = await searchParams;
-  let sql = "SELECT * FROM orders";
+  const { status, from, to, phone } = await searchParams;
+  const dateOk = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "");
+  const fromOk = dateOk(from);
+  const toOk = dateOk(to);
+  const phoneDigits = (phone || "").replace(/\D/g, "");
+
+  let sql = "SELECT * FROM orders WHERE 1=1";
   const params: string[] = [];
   if (status) {
-    sql += " WHERE status = ?";
+    sql += " AND status = ?";
     params.push(status);
+  }
+  // created_at нь 'YYYY-MM-DD HH:MM:SS' тул эхний 10 тэмдэгт нь он-сар-өдөр
+  if (fromOk) {
+    sql += " AND substr(created_at, 1, 10) >= ?";
+    params.push(fromOk);
+  }
+  if (toOk) {
+    sql += " AND substr(created_at, 1, 10) <= ?";
+    params.push(toOk);
+  }
+  if (phoneDigits) {
+    sql +=
+      " AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone,' ',''),'-',''),'+',''),'(',''),')','') LIKE ?";
+    params.push(`%${phoneDigits}%`);
   }
   sql += " ORDER BY created_at DESC LIMIT 200";
   const orders = db.prepare(sql).all(...params) as Order[];
+
+  // таб солиход шүүлтүүдээ хадгалж үлдэх query string
+  const qs = (statusKey: string) => {
+    const p = new URLSearchParams();
+    if (statusKey) p.set("status", statusKey);
+    if (fromOk) p.set("from", fromOk);
+    if (toOk) p.set("to", toOk);
+    if (phone) p.set("phone", phone);
+    const s = p.toString();
+    return s ? `/admin/orders?${s}` : "/admin/orders";
+  };
   const itemsStmt = db.prepare("SELECT * FROM order_items WHERE order_id = ?");
 
   const tabs = [
@@ -29,18 +59,23 @@ export default async function AdminOrders({
     { key: "cancelled", label: "Цуцлагдсан" },
   ];
 
+  const itemLabel = (i: OrderItem) => {
+    const opts = [i.size && `${i.size}`, i.color].filter(Boolean).join("/");
+    return `${i.product_name}${opts ? ` [${opts}]` : ""}×${i.qty}`;
+  };
+
   return (
     <div>
-      <h1 className="text-xl font-bold mb-4">Захиалгууд</h1>
-      <div className="flex gap-2 flex-wrap mb-4">
+      <h1 className="font-display mb-4 text-xl font-extrabold uppercase">Захиалгууд</h1>
+      <div className="mb-4 flex flex-wrap gap-2">
         {tabs.map((t) => (
           <Link
             key={t.key}
-            href={t.key ? `/admin/orders?status=${t.key}` : "/admin/orders"}
-            className={`px-3 py-1.5 rounded-full text-sm border ${
+            href={qs(t.key)}
+            className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
               (status || "") === t.key
-                ? "bg-indigo-600 text-white border-indigo-600"
-                : "bg-white border-slate-300"
+                ? "border-lime-400 bg-lime-400 text-zinc-950"
+                : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:border-zinc-500"
             }`}
           >
             {t.label}
@@ -48,8 +83,52 @@ export default async function AdminOrders({
         ))}
       </div>
 
+      <form
+        action="/admin/orders"
+        className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900 p-3"
+      >
+        {status && <input type="hidden" name="status" value={status} />}
+        <label className="flex items-center gap-2 text-xs text-zinc-400">
+          Огноо
+          <input
+            type="date"
+            name="from"
+            defaultValue={fromOk}
+            className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-sm text-zinc-100 transition focus:border-lime-400 focus:outline-none [color-scheme:dark]"
+          />
+          —
+          <input
+            type="date"
+            name="to"
+            defaultValue={toOk}
+            className="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-sm text-zinc-100 transition focus:border-lime-400 focus:outline-none [color-scheme:dark]"
+          />
+        </label>
+        <label className="flex flex-1 items-center gap-2 text-xs text-zinc-400">
+          Утас
+          <input
+            name="phone"
+            defaultValue={phone || ""}
+            placeholder="Утасны дугаараар хайх..."
+            className="w-full max-w-56 rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 transition focus:border-lime-400 focus:outline-none"
+          />
+        </label>
+        <button className="rounded-xl bg-zinc-100 px-4 py-1.5 text-sm font-semibold text-zinc-950 transition hover:bg-lime-400">
+          Шүүх
+        </button>
+        {(fromOk || toOk || phoneDigits) && (
+          <Link
+            href={status ? `/admin/orders?status=${status}` : "/admin/orders"}
+            className="rounded-xl border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 transition hover:border-zinc-500 hover:text-zinc-200"
+          >
+            ✕ Цэвэрлэх
+          </Link>
+        )}
+        <span className="ml-auto text-xs text-zinc-500">{orders.length} захиалга</span>
+      </form>
+
       {orders.length === 0 ? (
-        <div className="text-slate-500 py-10 text-center bg-white rounded-xl border border-slate-200">
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 py-10 text-center text-zinc-500">
           Захиалга алга
         </div>
       ) : (
@@ -57,52 +136,52 @@ export default async function AdminOrders({
           {orders.map((o) => {
             const items = itemsStmt.all(o.id) as OrderItem[];
             return (
-              <div key={o.id} className="bg-white rounded-xl border border-slate-200 p-4">
-                <div className="flex items-center justify-between flex-wrap gap-2">
+              <div key={o.id} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <span className="font-bold">{o.code}</span>
-                    <span className={`text-xs px-2.5 py-1 rounded-full ${STATUS_COLOR[o.status]}`}>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLOR[o.status]}`}>
                       {STATUS_LABEL[o.status]}
                     </span>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-zinc-500">
                       {o.payment_method === "qpay" ? "QPay" : "Данс"}
                     </span>
                   </div>
-                  <span className="text-sm text-slate-500">{o.created_at}</span>
+                  <span className="text-sm text-zinc-500">{o.created_at}</span>
                 </div>
-                <div className="mt-2 text-sm">
+                <div className="mt-2 text-sm text-zinc-300">
                   <span className="font-medium">{o.customer_name}</span> · {o.phone} · {o.address}
-                  {o.note && <span className="text-slate-500"> · 📝 {o.note}</span>}
+                  {o.note && <span className="text-zinc-500"> · 📝 {o.note}</span>}
                 </div>
-                <div className="mt-2 text-sm text-slate-600">
-                  {items.map((i) => `${i.product_name}×${i.qty}`).join(", ")} —{" "}
-                  <span className="font-bold text-indigo-600">{tugrug(o.total)}</span>
+                <div className="mt-2 text-sm text-zinc-400">
+                  {items.map(itemLabel).join(", ")} —{" "}
+                  <span className="font-bold text-lime-400">{tugrug(o.total)}</span>
                 </div>
-                <div className="mt-3 flex gap-2 flex-wrap">
+                <div className="mt-3 flex flex-wrap gap-2">
                   {o.status === "pending" && (
                     <form action={setOrderStatus.bind(null, o.id, "paid")}>
-                      <button className="text-sm bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700">
+                      <button className="rounded-xl bg-lime-400 px-4 py-1.5 text-sm font-bold text-zinc-950 transition hover:bg-lime-300">
                         ✓ Төлбөр баталгаажуулах
                       </button>
                     </form>
                   )}
                   {o.status === "paid" && (
                     <form action={setOrderStatus.bind(null, o.id, "delivered")}>
-                      <button className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700">
+                      <button className="rounded-xl bg-sky-500 px-4 py-1.5 text-sm font-bold text-white transition hover:bg-sky-400">
                         🚚 Хүргэгдсэн болгох
                       </button>
                     </form>
                   )}
                   {(o.status === "pending" || o.status === "paid") && (
                     <form action={setOrderStatus.bind(null, o.id, "cancelled")}>
-                      <button className="text-sm bg-white border border-red-300 text-red-600 px-4 py-1.5 rounded-lg hover:bg-red-50">
+                      <button className="rounded-xl border border-red-400/40 px-4 py-1.5 text-sm font-semibold text-red-400 transition hover:bg-red-400/10">
                         Цуцлах
                       </button>
                     </form>
                   )}
                   {o.status === "cancelled" && (
                     <form action={setOrderStatus.bind(null, o.id, "pending")}>
-                      <button className="text-sm bg-white border border-slate-300 px-4 py-1.5 rounded-lg hover:bg-slate-50">
+                      <button className="rounded-xl border border-zinc-700 px-4 py-1.5 text-sm font-semibold text-zinc-300 transition hover:bg-zinc-800">
                         Сэргээх
                       </button>
                     </form>

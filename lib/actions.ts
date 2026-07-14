@@ -1,6 +1,16 @@
 "use server";
 
 import db from "@/lib/db";
+import {
+  splitList,
+  allCombos,
+  parseVariantsOut,
+  parseColorImages,
+  MAX_COLOR_IMAGES,
+  BANNER_FONTS,
+  BANNER_POS_X,
+  BANNER_POS_Y,
+} from "@/lib/format";
 import { makeToken, requireAdmin, AUTH_COOKIE } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -14,9 +24,13 @@ export async function loginAction(
   _prev: { error?: string },
   formData: FormData
 ): Promise<{ error?: string }> {
+  const username = ((formData.get("username") as string) || "").trim();
   const password = formData.get("password") as string;
-  if (password !== (process.env.ADMIN_PASSWORD || "admin123")) {
-    return { error: "Нууц үг буруу байна" };
+  if (
+    username !== (process.env.ADMIN_USER || "admin") ||
+    password !== (process.env.ADMIN_PASSWORD || "admin123")
+  ) {
+    return { error: "Нэвтрэх нэр эсвэл нууц үг буруу байна" };
   }
   const c = await cookies();
   c.set(AUTH_COOKIE, makeToken(), {
@@ -35,34 +49,45 @@ export async function logoutAction() {
 }
 
 // ---------- Захиалга ----------
+// Үлдэгдэл тооцдоггүй (захиалга авч өгдөг сайт) тул статус солиход stock-д нөлөөлөхгүй
 export async function setOrderStatus(orderId: number, status: string) {
   await requireAdmin();
   if (!["pending", "paid", "delivered", "cancelled"].includes(status)) return;
-
-  const order = db.prepare("SELECT * FROM orders WHERE id = ?").get(orderId) as
-    | { id: number; status: string }
-    | undefined;
+  const order = db.prepare("SELECT id FROM orders WHERE id = ?").get(orderId);
   if (!order) return;
-
-  // Цуцлахад барааны үлдэгдлийг буцаана
-  if (status === "cancelled" && order.status !== "cancelled") {
-    const items = db
-      .prepare("SELECT product_id, qty FROM order_items WHERE order_id = ?")
-      .all(orderId) as { product_id: number | null; qty: number }[];
-    const inc = db.prepare("UPDATE products SET stock = stock + ? WHERE id = ?");
-    for (const it of items) if (it.product_id) inc.run(it.qty, it.product_id);
-  }
-  // Цуцалснаас буцаахад үлдэгдлийг дахин хасна
-  if (order.status === "cancelled" && status !== "cancelled") {
-    const items = db
-      .prepare("SELECT product_id, qty FROM order_items WHERE order_id = ?")
-      .all(orderId) as { product_id: number | null; qty: number }[];
-    const dec = db.prepare("UPDATE products SET stock = stock - ? WHERE id = ?");
-    for (const it of items) if (it.product_id) dec.run(it.qty, it.product_id);
-  }
-
   db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, orderId);
   revalidatePath("/admin/orders");
+}
+
+// ---------- Upload файлын цэвэрлэгээ ----------
+const UPLOADS_DIR = path.join(process.cwd(), "data", "uploads");
+
+/** /api/uploads/... URL-ыг диск дээрх аюулгүй зам болгоно (өөр зам бол null) */
+function uploadPathOf(url: string): string | null {
+  if (!url || !url.startsWith("/api/uploads/")) return null;
+  const name = path.basename(url);
+  if (!/^[\w.-]+$/.test(name) || name.includes("..")) return null;
+  return path.join(UPLOADS_DIR, name);
+}
+
+/** URL DB-ийн аль нэг газар ашиглагдаж байгаа эсэх */
+function uploadIsUsed(url: string): boolean {
+  return !!(
+    db.prepare("SELECT 1 FROM products WHERE image = ? OR color_images LIKE ? LIMIT 1").get(url, `%${url}%`) ||
+    db.prepare("SELECT 1 FROM categories WHERE image = ? LIMIT 1").get(url) ||
+    db.prepare("SELECT 1 FROM banners WHERE image = ? LIMIT 1").get(url) ||
+    db.prepare("SELECT 1 FROM settings WHERE value = ? LIMIT 1").get(url)
+  );
+}
+
+/** Хэрэггүй болсон upload файлыг устгана — DB-д хаана ч ашиглагдахгүй болсон үед л */
+function deleteUploadIfUnused(url: string | null | undefined) {
+  if (!url) return;
+  const p = uploadPathOf(url);
+  if (!p || uploadIsUsed(url)) return;
+  try {
+    fs.unlinkSync(p);
+  } catch {}
 }
 
 // ---------- Бараа ----------
@@ -87,35 +112,104 @@ export async function saveProduct(
   const name = (formData.get("name") as string)?.trim();
   const description = ((formData.get("description") as string) || "").trim();
   const price = Math.floor(Number(formData.get("price")));
-  const stock = Math.floor(Number(formData.get("stock")));
   const category_id = Number(formData.get("category_id")) || null;
   const active = formData.get("active") ? 1 : 0;
+  const normList = (v: FormDataEntryValue | null) =>
+    String(v || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join(",");
+  const sizes = normList(formData.get("sizes"));
+  const colors = normList(formData.get("colors"));
 
-  if (!name || !price || price < 0 || stock < 0 || isNaN(stock))
-    return { error: "Нэр, үнэ, үлдэгдлээ зөв бөглөнө үү" };
+  if (!name || !price || price < 0) return { error: "Нэр, үнээ зөв бөглөнө үү" };
+
+  // Хэрэггүй болсон хуучин зургууд (DB бичилт амжилттай болсны ДАРАА устгана)
+  const removedUploads: string[] = [];
+  // Энэ хүсэлтээр шинээр хадгалсан файлууд (алдаа гарвал буцааж устгана)
+  const newUploads: string[] = [];
+  const rollback = () => {
+    for (const u of newUploads) {
+      const p = uploadPathOf(u);
+      if (p) try { fs.unlinkSync(p); } catch {}
+    }
+  };
 
   let image: string | null = null;
   try {
     image = await saveImage(formData.get("image") as File | null);
+    if (image) newUploads.push(image);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Зураг хадгалахад алдаа гарлаа" };
   }
 
+  const prev = id
+    ? (db.prepare("SELECT image, variants_out, color_images FROM products WHERE id = ?").get(id) as
+        | { image: string; variants_out: string; color_images: string }
+        | undefined)
+    : undefined;
+  // Үндсэн зураг солигдвол хуучныг устгах жагсаалтад
+  if (image && prev?.image) removedUploads.push(prev.image);
+
+  // Өнгө бүрийн зураг (4 хүртэл нүд): нүд бүрд устгах чекбокс + шинэ файл оруулбал дарж бичнэ,
+  // жагсаалтаас хасагдсан өнгөнийх автоматаар цэвэрлэгдэнэ
+  const colorList = splitList(colors);
+  const prevColorImages = parseColorImages(prev?.color_images);
+  const colorImages: Record<string, string[]> = {};
+  for (const c of colorList) {
+    const slots: (string | null)[] = Array.from(
+      { length: MAX_COLOR_IMAGES },
+      (_, i) => prevColorImages[c]?.[i] ?? null
+    );
+    for (let i = 0; i < MAX_COLOR_IMAGES; i++) {
+      if (formData.get(`colorimgdel:${c}:${i}`) && slots[i]) {
+        removedUploads.push(slots[i] as string);
+        slots[i] = null;
+      }
+      try {
+        const img = await saveImage(formData.get(`colorimg:${c}:${i}`) as File | null);
+        if (img) {
+          if (slots[i]) removedUploads.push(slots[i] as string);
+          slots[i] = img;
+          newUploads.push(img);
+        }
+      } catch (e) {
+        rollback();
+        return { error: e instanceof Error ? e.message : `"${c}" өнгөний зураг хадгалахад алдаа гарлаа` };
+      }
+    }
+    const imgs = slots.filter((s): s is string => !!s);
+    if (imgs.length) colorImages[c] = imgs;
+  }
+  // Жагсаалтаас хасагдсан өнгөний зургууд мөн хэрэггүй боллоо
+  for (const [c, imgs] of Object.entries(prevColorImages)) {
+    if (!colorList.includes(c)) removedUploads.push(...imgs);
+  }
+  const color_images = JSON.stringify(colorImages);
+
   if (id) {
+    // Өнгө/размерын жагсаалт өөрчлөгдвөл хүчингүй болсон хослолуудыг цэвэрлэнэ
+    const valid = new Set(allCombos(colorList, splitList(sizes)));
+    const variants_out = JSON.stringify(
+      [...parseVariantsOut(prev?.variants_out)].filter((k) => valid.has(k))
+    );
     if (image) {
       db.prepare(
-        "UPDATE products SET name=?, description=?, price=?, stock=?, category_id=?, active=?, image=? WHERE id=?"
-      ).run(name, description, price, stock, category_id, active, image, id);
+        "UPDATE products SET name=?, description=?, price=?, sizes=?, colors=?, variants_out=?, color_images=?, category_id=?, active=?, image=? WHERE id=?"
+      ).run(name, description, price, sizes, colors, variants_out, color_images, category_id, active, image, id);
     } else {
       db.prepare(
-        "UPDATE products SET name=?, description=?, price=?, stock=?, category_id=?, active=? WHERE id=?"
-      ).run(name, description, price, stock, category_id, active, id);
+        "UPDATE products SET name=?, description=?, price=?, sizes=?, colors=?, variants_out=?, color_images=?, category_id=?, active=? WHERE id=?"
+      ).run(name, description, price, sizes, colors, variants_out, color_images, category_id, active, id);
     }
   } else {
     db.prepare(
-      "INSERT INTO products (name, description, price, stock, category_id, active, image) VALUES (?,?,?,?,?,?,?)"
-    ).run(name, description, price, stock, category_id, active, image || "/img/placeholder.svg");
+      "INSERT INTO products (name, description, price, sizes, colors, color_images, category_id, active, image) VALUES (?,?,?,?,?,?,?,?,?)"
+    ).run(name, description, price, sizes, colors, color_images, category_id, active, image || "/img/placeholder.svg");
   }
+  // DB шинэчлэгдсэн тул хэрэггүй болсон файлуудыг устгана
+  for (const u of removedUploads) deleteUploadIfUnused(u);
   revalidatePath("/");
   redirect("/admin/products");
 }
@@ -134,7 +228,41 @@ export async function restoreProduct(id: number) {
   revalidatePath("/");
 }
 
+/** Веб талд харагдах эсэхийг toggle хийнэ */
+export async function toggleProduct(id: number, active: boolean) {
+  await requireAdmin();
+  db.prepare("UPDATE products SET active = ? WHERE id = ?").run(active ? 1 : 0, id);
+  revalidatePath("/admin/products");
+  revalidatePath("/");
+}
+
+/** Өгөгдсөн өнгө×размер хослолуудыг дууссан (out=true) эсвэл байгаа (out=false) болгоно */
+export async function setVariantsOut(id: number, keys: string[], out: boolean) {
+  await requireAdmin();
+  const row = db.prepare("SELECT sizes, colors, variants_out FROM products WHERE id = ?").get(id) as
+    | { sizes: string; colors: string; variants_out: string }
+    | undefined;
+  if (!row) return;
+  const valid = new Set(allCombos(splitList(row.colors), splitList(row.sizes)));
+  const cur = parseVariantsOut(row.variants_out);
+  for (const k of keys) {
+    if (!valid.has(k)) continue;
+    if (out) cur.add(k);
+    else cur.delete(k);
+  }
+  db.prepare("UPDATE products SET variants_out = ? WHERE id = ?").run(JSON.stringify([...cur]), id);
+  revalidatePath("/admin/products");
+  revalidatePath("/");
+  revalidatePath(`/products/${id}`);
+}
+
 // ---------- Категори ----------
+function revalidateCategories() {
+  revalidatePath("/admin/categories");
+  revalidatePath("/admin/products");
+  revalidatePath("/");
+}
+
 export async function addCategory(formData: FormData) {
   await requireAdmin();
   const name = (formData.get("name") as string)?.trim();
@@ -144,10 +272,185 @@ export async function addCategory(formData: FormData) {
       .toLowerCase()
       .replace(/\s+/g, "-")
       .replace(/[^a-z0-9а-яөү-]/g, "") || `cat-${Date.now()}`;
+  let image = "";
   try {
-    db.prepare("INSERT INTO categories (name, slug) VALUES (?, ?)").run(name, slug);
+    image = (await saveImage(formData.get("image") as File | null)) || "";
   } catch {}
-  revalidatePath("/admin/products");
+  try {
+    db.prepare("INSERT INTO categories (name, slug, image) VALUES (?, ?, ?)").run(name, slug, image);
+  } catch {}
+  revalidateCategories();
+}
+
+export async function updateCategory(formData: FormData) {
+  await requireAdmin();
+  const id = Number(formData.get("id"));
+  const name = (formData.get("name") as string)?.trim();
+  if (!id || !name) return;
+  let image: string | null = null;
+  try {
+    image = await saveImage(formData.get("image") as File | null);
+  } catch {}
+  const prev = db.prepare("SELECT image FROM categories WHERE id = ?").get(id) as
+    | { image: string }
+    | undefined;
+  // slug-ийг өөрчлөхгүй — хуучин линкүүд хэвээр ажиллана
+  try {
+    if (image) {
+      db.prepare("UPDATE categories SET name = ?, image = ? WHERE id = ?").run(name, image, id);
+    } else {
+      db.prepare("UPDATE categories SET name = ? WHERE id = ?").run(name, id);
+    }
+  } catch {}
+  if (image) deleteUploadIfUnused(prev?.image);
+  revalidateCategories();
+}
+
+export async function removeCategoryImage(formData: FormData) {
+  await requireAdmin();
+  const id = Number(formData.get("id"));
+  if (!id) return;
+  const prev = db.prepare("SELECT image FROM categories WHERE id = ?").get(id) as
+    | { image: string }
+    | undefined;
+  db.prepare("UPDATE categories SET image = '' WHERE id = ?").run(id);
+  deleteUploadIfUnused(prev?.image);
+  revalidateCategories();
+}
+
+export async function deleteCategory(formData: FormData) {
+  await requireAdmin();
+  const id = Number(formData.get("id"));
+  if (!id) return;
+  const prev = db.prepare("SELECT image FROM categories WHERE id = ?").get(id) as
+    | { image: string }
+    | undefined;
+  // FK: ON DELETE SET NULL — бараанууд устахгүй, "Категоригүй" болно
+  db.prepare("DELETE FROM categories WHERE id = ?").run(id);
+  deleteUploadIfUnused(prev?.image);
+  revalidateCategories();
+}
+
+// ---------- Реклам (нүүрний слайд) ----------
+function bannerTextFields(formData: FormData) {
+  const title = ((formData.get("title") as string) || "").trim();
+  const subtitle = ((formData.get("subtitle") as string) || "").trim();
+  let font = (formData.get("font") as string) || "display";
+  if (!BANNER_FONTS[font]) font = "display";
+  let color = ((formData.get("color") as string) || "#ffffff").trim();
+  if (!/^#[0-9a-fA-F]{6}$/.test(color)) color = "#ffffff";
+  let subtitle_color = ((formData.get("subtitle_color") as string) || "#ffffff").trim();
+  if (!/^#[0-9a-fA-F]{6}$/.test(subtitle_color)) subtitle_color = "#ffffff";
+  const clampInt = (v: FormDataEntryValue | null, min: number, max: number, def: number) => {
+    const n = Math.round(Number(v));
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def;
+  };
+  const title_size = clampInt(formData.get("title_size"), 16, 120, 48);
+  const subtitle_size = clampInt(formData.get("subtitle_size"), 10, 48, 18);
+  let pos_x = (formData.get("pos_x") as string) || "left";
+  if (!BANNER_POS_X[pos_x]) pos_x = "left";
+  let pos_y = (formData.get("pos_y") as string) || "center";
+  if (!BANNER_POS_Y[pos_y]) pos_y = "center";
+  return { title, subtitle, font, color, subtitle_color, title_size, subtitle_size, pos_x, pos_y };
+}
+
+export async function addBanner(formData: FormData) {
+  await requireAdmin();
+  let image: string | null = null;
+  try {
+    image = await saveImage(formData.get("image") as File | null);
+  } catch {}
+  if (!image) return;
+  const t = bannerTextFields(formData);
+  db.prepare(
+    "INSERT INTO banners (image, title, subtitle, font, color, subtitle_color, title_size, subtitle_size, pos_x, pos_y) VALUES (?,?,?,?,?,?,?,?,?,?)"
+  ).run(image, t.title, t.subtitle, t.font, t.color, t.subtitle_color, t.title_size, t.subtitle_size, t.pos_x, t.pos_y);
+  revalidatePath("/");
+  revalidatePath("/admin/banners");
+}
+
+export async function updateBanner(formData: FormData) {
+  await requireAdmin();
+  const id = Number(formData.get("id"));
+  if (!id) return;
+  let image: string | null = null;
+  try {
+    image = await saveImage(formData.get("image") as File | null);
+  } catch {}
+  const prevBanner = db.prepare("SELECT image FROM banners WHERE id = ?").get(id) as
+    | { image: string }
+    | undefined;
+  const t = bannerTextFields(formData);
+  if (image) {
+    db.prepare(
+      "UPDATE banners SET image=?, title=?, subtitle=?, font=?, color=?, subtitle_color=?, title_size=?, subtitle_size=?, pos_x=?, pos_y=? WHERE id=?"
+    ).run(image, t.title, t.subtitle, t.font, t.color, t.subtitle_color, t.title_size, t.subtitle_size, t.pos_x, t.pos_y, id);
+  } else {
+    db.prepare(
+      "UPDATE banners SET title=?, subtitle=?, font=?, color=?, subtitle_color=?, title_size=?, subtitle_size=?, pos_x=?, pos_y=? WHERE id=?"
+    ).run(t.title, t.subtitle, t.font, t.color, t.subtitle_color, t.title_size, t.subtitle_size, t.pos_x, t.pos_y, id);
+  }
+  if (image) deleteUploadIfUnused(prevBanner?.image);
+  revalidatePath("/");
+  revalidatePath("/admin/banners");
+}
+
+export async function deleteBanner(formData: FormData) {
+  await requireAdmin();
+  const id = Number(formData.get("id"));
+  if (!id) return;
+  const prev = db.prepare("SELECT image FROM banners WHERE id = ?").get(id) as
+    | { image: string }
+    | undefined;
+  db.prepare("DELETE FROM banners WHERE id = ?").run(id);
+  deleteUploadIfUnused(prev?.image);
+  revalidatePath("/");
+  revalidatePath("/admin/banners");
+}
+
+/** uploads фолдероос DB-д ашиглагдахгүй болсон бүх файлыг устгана (1 цагийн доторхыг алгасна) */
+export async function cleanupUploads(): Promise<{ message: string }> {
+  await requireAdmin();
+  let files: string[] = [];
+  try {
+    files = fs.readdirSync(UPLOADS_DIR);
+  } catch {
+    return { message: "uploads фолдер алга" };
+  }
+
+  // Ашиглагдаж буй бүх URL-ын багц
+  const used = new Set<string>();
+  for (const r of db.prepare("SELECT image, color_images FROM products").all() as {
+    image: string;
+    color_images: string;
+  }[]) {
+    used.add(r.image);
+    for (const imgs of Object.values(parseColorImages(r.color_images))) imgs.forEach((u) => used.add(u));
+  }
+  for (const r of db.prepare("SELECT image FROM categories").all() as { image: string }[]) used.add(r.image);
+  for (const r of db.prepare("SELECT image FROM banners").all() as { image: string }[]) used.add(r.image);
+  for (const r of db.prepare("SELECT value FROM settings").all() as { value: string }[]) used.add(r.value);
+
+  let count = 0;
+  let bytes = 0;
+  const now = Date.now();
+  for (const f of files) {
+    if (!/^[\w.-]+$/.test(f) || used.has(`/api/uploads/${f}`)) continue;
+    const full = path.join(UPLOADS_DIR, f);
+    try {
+      const st = fs.statSync(full);
+      // Дөнгөж орж ирж буй (хадгалагдаагүй байгаа) файлыг андуурч устгахгүй
+      if (now - st.mtimeMs < 60 * 60 * 1000) continue;
+      fs.unlinkSync(full);
+      count++;
+      bytes += st.size;
+    } catch {}
+  }
+  return {
+    message: count
+      ? `🧹 ${count} файл устгаж, ${(bytes / 1024 / 1024).toFixed(1)}MB суллалаа`
+      : "Илүүдэл файл алга — бүх зураг ашиглагдаж байна ✓",
+  };
 }
 
 // ---------- Тохиргоо ----------
@@ -161,6 +464,22 @@ export async function saveSettings(formData: FormData) {
     const v = (formData.get(k) as string) ?? "";
     up.run(k, v.trim());
   }
-  revalidatePath("/");
+  // Лого: шинэ файл оруулбал солино, "арилгах" чагттай бол хоослоно (хуучин файлыг устгана)
+  const prevLogo = (db.prepare("SELECT value FROM settings WHERE key = 'store_logo'").get() as
+    | { value: string }
+    | undefined)?.value;
+  if (formData.get("remove_logo")) {
+    up.run("store_logo", "");
+    deleteUploadIfUnused(prevLogo);
+  } else {
+    try {
+      const logo = await saveImage(formData.get("logo") as File | null);
+      if (logo) {
+        up.run("store_logo", logo);
+        deleteUploadIfUnused(prevLogo);
+      }
+    } catch {}
+  }
+  revalidatePath("/", "layout");
   revalidatePath("/admin/settings");
 }

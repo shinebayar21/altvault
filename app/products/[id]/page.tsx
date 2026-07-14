@@ -1,6 +1,5 @@
 import db, { Product } from "@/lib/db";
-import { tugrug } from "@/lib/format";
-import AddToCart from "@/components/AddToCart";
+import ProductView from "@/components/ProductView";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
@@ -19,33 +18,10 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
   return (
     <div>
-      <Link href="/" className="text-sm text-slate-500 hover:text-indigo-600">
+      <Link href="/" className="text-sm text-zinc-500 transition hover:text-lime-400">
         ← Буцах
       </Link>
-      <div className="mt-4 grid md:grid-cols-2 gap-8 bg-white rounded-2xl border border-slate-200 p-6">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={p.image}
-          alt={p.name}
-          className="w-full aspect-square object-cover rounded-xl bg-slate-100"
-        />
-        <div>
-          {p.category_name && (
-            <div className="text-xs uppercase tracking-wide text-indigo-500 mb-2">
-              {p.category_name}
-            </div>
-          )}
-          <h1 className="text-2xl font-bold">{p.name}</h1>
-          <div className="mt-3 text-3xl font-bold text-indigo-600">{tugrug(p.price)}</div>
-          <div className="mt-2 text-sm text-slate-500">
-            {p.stock > 0 ? `Үлдэгдэл: ${p.stock} ширхэг` : "Дууссан"}
-          </div>
-          <p className="mt-4 text-slate-700 leading-relaxed whitespace-pre-line">{p.description}</p>
-          <div className="mt-6">
-            <AddToCart p={p} />
-          </div>
-        </div>
-      </div>
+      <ProductView p={p} />
     </div>
   );
 }

@@ -21,10 +21,13 @@ export default function CheckoutPage() {
 
   if (items.length === 0)
     return (
-      <div className="text-center py-24">
-        <p className="text-slate-500 mb-6">Сагс хоосон байна</p>
-        <Link href="/" className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg">
-          Бараа үзэх
+      <div className="py-24 text-center">
+        <p className="mb-6 text-zinc-500">Сагс хоосон байна</p>
+        <Link
+          href="/"
+          className="rounded-xl bg-lime-400 px-8 py-3 font-bold uppercase tracking-wide text-zinc-950 hover:bg-lime-300"
+        >
+          Пүүз үзэх
         </Link>
       </div>
     );
@@ -39,7 +42,7 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          items: items.map((i) => ({ id: i.id, qty: i.qty })),
+          items: items.map((i) => ({ id: i.id, qty: i.qty, size: i.size, color: i.color })),
         }),
       });
       const data = await res.json();
@@ -53,15 +56,16 @@ export default function CheckoutPage() {
   }
 
   const input =
-    "w-full border border-slate-300 rounded-lg px-4 py-2.5 bg-white focus:outline-indigo-500";
+    "w-full rounded-xl border border-zinc-700 bg-zinc-950 px-4 py-2.5 text-zinc-100 placeholder-zinc-600 transition focus:border-lime-400 focus:outline-none";
+  const card = "rounded-2xl border border-zinc-800 bg-zinc-900 p-5";
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-xl font-bold mb-5">Захиалга өгөх</h1>
+    <div className="mx-auto max-w-2xl">
+      <h1 className="font-display mb-6 text-2xl font-extrabold uppercase">Захиалга өгөх</h1>
       <form onSubmit={submit} className="space-y-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
+        <div className={`${card} space-y-4`}>
           <div>
-            <label className="block text-sm font-medium mb-1">Нэр *</label>
+            <label className="mb-1 block text-sm font-medium text-zinc-300">Нэр *</label>
             <input
               required
               className={input}
@@ -70,16 +74,17 @@ export default function CheckoutPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Утасны дугаар *</label>
+            <label className="mb-1 block text-sm font-medium text-zinc-300">Утасны дугаар *</label>
             <input
               required
+              type="tel"
               className={input}
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Хүргэлтийн хаяг *</label>
+            <label className="mb-1 block text-sm font-medium text-zinc-300">Хүргэлтийн хаяг *</label>
             <textarea
               required
               rows={2}
@@ -89,7 +94,7 @@ export default function CheckoutPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Нэмэлт тэмдэглэл</label>
+            <label className="mb-1 block text-sm font-medium text-zinc-300">Нэмэлт тэмдэглэл</label>
             <input
               className={input}
               value={form.note}
@@ -98,21 +103,37 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <div className="text-sm font-medium mb-3">Төлбөрийн хэлбэр</div>
-          <label className="flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer has-checked:border-indigo-500 has-checked:bg-indigo-50">
+        <div className={card}>
+          <div className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-400">
+            Төлбөрийн хэлбэр
+          </div>
+          <label
+            className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3.5 transition ${
+              form.payment_method === "bank"
+                ? "border-lime-400 bg-lime-400/10"
+                : "border-zinc-700 hover:border-zinc-500"
+            }`}
+          >
             <input
               type="radio"
               name="pm"
+              className="accent-lime-400"
               checked={form.payment_method === "bank"}
               onChange={() => setForm({ ...form, payment_method: "bank" })}
             />
             <span>🏦 Дансаар шилжүүлэх</span>
           </label>
-          <label className="mt-2 flex items-center gap-3 p-3 border border-slate-200 rounded-lg cursor-pointer has-checked:border-indigo-500 has-checked:bg-indigo-50">
+          <label
+            className={`mt-2 flex cursor-pointer items-center gap-3 rounded-xl border p-3.5 transition ${
+              form.payment_method === "qpay"
+                ? "border-lime-400 bg-lime-400/10"
+                : "border-zinc-700 hover:border-zinc-500"
+            }`}
+          >
             <input
               type="radio"
               name="pm"
+              className="accent-lime-400"
               checked={form.payment_method === "qpay"}
               onChange={() => setForm({ ...form, payment_method: "qpay" })}
             />
@@ -120,26 +141,37 @@ export default function CheckoutPage() {
           </label>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <div className={card}>
           {items.map((i) => (
-            <div key={i.id} className="flex justify-between text-sm py-1">
-              <span>
-                {i.name} × {i.qty}
+            <div key={i.key} className="flex justify-between py-1 text-sm">
+              <span className="text-zinc-300">
+                {i.name}
+                {(i.size || i.color) && (
+                  <span className="text-zinc-500">
+                    {" "}
+                    ({[i.size && `размер ${i.size}`, i.color].filter(Boolean).join(", ")})
+                  </span>
+                )}{" "}
+                × {i.qty}
               </span>
               <span>{tugrug(i.price * i.qty)}</span>
             </div>
           ))}
-          <div className="border-t border-slate-200 mt-3 pt-3 flex justify-between font-bold">
+          <div className="mt-3 flex justify-between border-t border-zinc-800 pt-3 font-bold">
             <span>Нийт</span>
-            <span className="text-indigo-600">{tugrug(total)}</span>
+            <span className="text-lime-400">{tugrug(total)}</span>
           </div>
         </div>
 
-        {error && <div className="text-red-600 text-sm bg-red-50 rounded-lg p-3">{error}</div>}
+        {error && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+            {error}
+          </div>
+        )}
 
         <button
           disabled={loading}
-          className="w-full bg-indigo-600 text-white py-3.5 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50"
+          className="w-full rounded-xl bg-lime-400 py-4 font-bold uppercase tracking-wide text-zinc-950 transition hover:bg-lime-300 disabled:opacity-50"
         >
           {loading ? "Илгээж байна..." : "Захиалга баталгаажуулах"}
         </button>

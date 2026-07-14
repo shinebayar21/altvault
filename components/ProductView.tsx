@@ -1,0 +1,86 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import type { Product } from "@/lib/db";
+import { tugrug, parseColorImages } from "@/lib/format";
+import AddToCart from "./AddToCart";
+
+/** Барааны дэлгэрэнгүй — сонгосон өнгөний зургуудыг галерей хэлбэрээр харуулна */
+export default function ProductView({ p }: { p: Product }) {
+  const colorImages = parseColorImages(p.color_images);
+  // Өнгө + сонгосон зургийн индексийг нэг state-д хадгална:
+  // өнгө ЖИНХЭНЭ өөрчлөгдсөн үед л индекс 0 руу буцна, давхар дуудлагад үл хөдөлнө
+  const [sel, setSel] = useState<{ color: string; idx: number }>({ color: "", idx: 0 });
+  // Тогтвортой callback — AddToCart-ийн useEffect-ийг дахин ажиллуулж индексийг алдагдуулахгүй
+  const setColor = useCallback((c: string) => {
+    setSel((s) => (s.color === c ? s : { color: c, idx: 0 }));
+  }, []);
+
+  const imgs = sel.color && colorImages[sel.color]?.length ? colorImages[sel.color] : [p.image];
+  const image = imgs[Math.min(sel.idx, imgs.length - 1)];
+
+  // Hover zoom — курсорын байрлалаар томруулж харуулна
+  const [zoom, setZoom] = useState<{ x: number; y: number; on: boolean }>({ x: 50, y: 50, on: false });
+
+  return (
+    <div className="mt-4 grid gap-8 rounded-3xl border border-zinc-800 bg-zinc-900 p-6 md:grid-cols-2 md:p-8">
+      <div>
+        <div
+          className="relative cursor-zoom-in overflow-hidden rounded-2xl"
+          onMouseMove={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            setZoom({
+              x: ((e.clientX - r.left) / r.width) * 100,
+              y: ((e.clientY - r.top) / r.height) * 100,
+              on: true,
+            });
+          }}
+          onMouseLeave={() => setZoom((z) => ({ ...z, on: false }))}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            key={image}
+            src={image}
+            alt={sel.color ? `${p.name} — ${sel.color}` : p.name}
+            className="aspect-square w-full bg-zinc-800 object-cover transition-transform duration-150 ease-out"
+            style={{
+              transformOrigin: `${zoom.x}% ${zoom.y}%`,
+              transform: zoom.on ? "scale(2.2)" : "scale(1)",
+            }}
+          />
+        </div>
+        {imgs.length > 1 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {imgs.map((src, i) => (
+              <button
+                key={`${src}-${i}`}
+                onClick={() => setSel((s) => ({ ...s, idx: i }))}
+                className={`overflow-hidden rounded-xl border-2 transition ${
+                  i === Math.min(sel.idx, imgs.length - 1)
+                    ? "border-lime-400"
+                    : "border-transparent opacity-70 hover:opacity-100"
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt="" className="h-16 w-16 bg-zinc-800 object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <div>
+        {p.category_name && (
+          <div className="mb-3 inline-block rounded-full border border-lime-400/40 bg-lime-400/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-lime-400">
+            {p.category_name}
+          </div>
+        )}
+        <h1 className="font-display text-3xl font-extrabold uppercase leading-tight">{p.name}</h1>
+        <div className="mt-3 font-display text-3xl font-bold text-lime-400">{tugrug(p.price)}</div>
+        <p className="mt-5 whitespace-pre-line leading-relaxed text-zinc-300">{p.description}</p>
+        <div className="mt-7 border-t border-zinc-800 pt-7">
+          <AddToCart p={p} onColorChange={setColor} />
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -19,21 +19,30 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
   const s = getSettings();
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl border border-slate-200 p-6">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h1 className="text-xl font-bold">Захиалга: {order.code}</h1>
-          <span className={`text-sm px-3 py-1 rounded-full ${STATUS_COLOR[order.status]}`}>
+    <div className="mx-auto max-w-2xl">
+      <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-6 sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="font-display text-xl font-extrabold uppercase">
+            Захиалга: <span className="text-lime-400">{order.code}</span>
+          </h1>
+          <span className={`rounded-full px-3 py-1 text-sm font-semibold ${STATUS_COLOR[order.status]}`}>
             {STATUS_LABEL[order.status]}
           </span>
         </div>
-        <div className="mt-1 text-sm text-slate-500">{order.created_at}</div>
+        <div className="mt-1 text-sm text-zinc-500">{order.created_at}</div>
 
-        <div className="mt-5 divide-y divide-slate-100 border-y border-slate-100">
+        <div className="mt-5 divide-y divide-zinc-800 border-y border-zinc-800">
           {items.map((i) => (
-            <div key={i.id} className="flex justify-between py-2 text-sm">
-              <span>
-                {i.product_name} × {i.qty}
+            <div key={i.id} className="flex justify-between py-2.5 text-sm">
+              <span className="text-zinc-300">
+                {i.product_name}
+                {(i.size || i.color) && (
+                  <span className="text-zinc-500">
+                    {" "}
+                    ({[i.size && `размер ${i.size}`, i.color].filter(Boolean).join(", ")})
+                  </span>
+                )}{" "}
+                × {i.qty}
               </span>
               <span>{tugrug(i.price * i.qty)}</span>
             </div>
@@ -41,27 +50,27 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
         </div>
         <div className="flex justify-between py-3 font-bold">
           <span>Нийт дүн</span>
-          <span className="text-indigo-600">{tugrug(order.total)}</span>
+          <span className="text-lime-400">{tugrug(order.total)}</span>
         </div>
 
         {order.status === "pending" && (
-          <div className="mt-4 rounded-xl bg-indigo-50 border border-indigo-100 p-5">
+          <div className="mt-4 rounded-2xl border border-lime-400/20 bg-lime-400/5 p-5">
             {order.payment_method === "qpay" && order.qpay_qr ? (
               <div className="text-center">
-                <div className="font-medium mb-3">📱 QPay-ээр төлөх</div>
+                <div className="mb-3 font-semibold">📱 QPay-ээр төлөх</div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={`data:image/png;base64,${order.qpay_qr}`}
                   alt="QPay QR"
-                  className="w-52 h-52 mx-auto rounded-lg bg-white p-2"
+                  className="mx-auto h-52 w-52 rounded-xl bg-white p-2"
                 />
-                <p className="text-sm text-slate-600 mt-3">
+                <p className="mt-3 text-sm text-zinc-400">
                   Банкны аппликейшнээрээ QR кодыг уншуулж төлнө үү.
                 </p>
                 {order.qpay_url && (
                   <a
                     href={order.qpay_url}
-                    className="inline-block mt-3 text-indigo-600 underline text-sm"
+                    className="mt-3 inline-block text-sm text-lime-400 underline"
                   >
                     Утаснаасаа төлөх бол энд дарна уу
                   </a>
@@ -72,34 +81,34 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
               </div>
             ) : (
               <div>
-                <div className="font-medium mb-3">🏦 Дансаар шилжүүлэх заавар</div>
-                <table className="text-sm w-full">
+                <div className="mb-3 font-semibold">🏦 Дансаар шилжүүлэх заавар</div>
+                <table className="w-full text-sm">
                   <tbody>
                     <tr>
-                      <td className="py-1 text-slate-500 w-36">Банк:</td>
+                      <td className="w-36 py-1 text-zinc-500">Банк:</td>
                       <td className="font-medium">{s.bank_name}</td>
                     </tr>
                     <tr>
-                      <td className="py-1 text-slate-500">Дансны дугаар:</td>
+                      <td className="py-1 text-zinc-500">Дансны дугаар:</td>
                       <td className="font-medium">{s.bank_account}</td>
                     </tr>
                     <tr>
-                      <td className="py-1 text-slate-500">Хүлээн авагч:</td>
+                      <td className="py-1 text-zinc-500">Хүлээн авагч:</td>
                       <td className="font-medium">{s.bank_holder}</td>
                     </tr>
                     <tr>
-                      <td className="py-1 text-slate-500">Шилжүүлэх дүн:</td>
-                      <td className="font-bold text-indigo-600">{tugrug(order.total)}</td>
+                      <td className="py-1 text-zinc-500">Шилжүүлэх дүн:</td>
+                      <td className="font-bold text-lime-400">{tugrug(order.total)}</td>
                     </tr>
                     <tr>
-                      <td className="py-1 text-slate-500">Гүйлгээний утга:</td>
-                      <td className="font-bold text-red-600">
+                      <td className="py-1 text-zinc-500">Гүйлгээний утга:</td>
+                      <td className="font-bold text-orange-400">
                         {order.code} {order.phone}
                       </td>
                     </tr>
                   </tbody>
                 </table>
-                <p className="text-xs text-slate-500 mt-3">
+                <p className="mt-3 text-xs text-zinc-500">
                   ⚠️ Гүйлгээний утга дээр захиалгын кодоо заавал бичнэ үү. Төлбөр орж ирмэгц бид
                   захиалгыг баталгаажуулна.
                 </p>
@@ -109,17 +118,17 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
         )}
 
         {order.status === "paid" && (
-          <div className="mt-4 rounded-xl bg-green-50 border border-green-100 p-4 text-green-800 text-sm">
+          <div className="mt-4 rounded-2xl border border-lime-400/30 bg-lime-400/10 p-4 text-sm text-lime-300">
             ✅ Төлбөр баталгаажсан. Бид таны захиалгыг бэлдэж, хүргэлтэд гаргана.
           </div>
         )}
 
-        <div className="mt-5 text-sm text-slate-500">
+        <div className="mt-5 text-sm text-zinc-500">
           Холбоо барих: {s.phone} · Хүргэлтийн хаяг: {order.address}
         </div>
       </div>
       <div className="mt-4 text-center">
-        <Link href="/" className="text-indigo-600 text-sm hover:underline">
+        <Link href="/" className="text-sm text-lime-400 hover:underline">
           ← Дэлгүүр рүү буцах
         </Link>
       </div>
