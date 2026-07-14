@@ -88,6 +88,11 @@ function ensureColumn(table: string, column: string, ddl: string) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
   }
 }
+
+// next build олон worker-оор зэрэг import хийдэг тул migration+seed-ийг
+// BEGIN IMMEDIATE транзакцаар түгжинэ — эс бөгөөс хоёр процесс зэрэг seed хийж
+// UNIQUE constraint алдаа өгдөг (Docker build дээр тохиолдсон).
+const initDb = db.transaction(() => {
 ensureColumn("products", "sizes", "sizes TEXT NOT NULL DEFAULT ''");
 ensureColumn("products", "colors", "colors TEXT NOT NULL DEFAULT ''");
 // дууссан өнгө×размер хослолуудын JSON массив: ["Цагаан|41","Хар|42"]
@@ -180,6 +185,8 @@ if (setCount === 0) {
   ins.run("bank_holder", "Дэлгүүрийн эзний нэр");
   ins.run("phone", "9911-2233");
 }
+});
+initDb.immediate();
 
 export default db;
 
