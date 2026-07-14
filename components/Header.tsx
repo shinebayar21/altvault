@@ -5,6 +5,9 @@ import { useCart } from "./CartProvider";
 
 export default function Header({ storeName, logo }: { storeName: string; logo?: string }) {
   const { count } = useCart();
+  // Нэрний төгсгөлд өргөтгөл байвал өнгөөр ялгана, байхгүй бол нэрийг байгаагаар нь харуулна
+  const ext = storeName.match(/\.\w+$/)?.[0] ?? "";
+  const base = ext ? storeName.slice(0, -ext.length) : storeName;
   return (
     <header className="sticky top-0 z-20 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
@@ -19,8 +22,8 @@ export default function Header({ storeName, logo }: { storeName: string; logo?: 
             <span>👟</span>
           )}
           <span className="truncate">
-            {storeName.replace(/\.\w+$/, "")}
-            <span className="text-lime-400">.mn</span>
+            {base}
+            {ext && <span className="text-lime-400">{ext}</span>}
           </span>
         </Link>
         <nav className="flex shrink-0 items-center gap-0.5 text-sm sm:gap-2">
