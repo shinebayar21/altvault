@@ -15,8 +15,8 @@ const caveat = Caveat({ subsets: ["latin", "cyrillic"], variable: "--font-caveat
 export async function generateMetadata(): Promise<Metadata> {
   const s = getSettings();
   const name = s.store_name || "Altvault";
-  const title = `${name} — Пүүзний онлайн дэлгүүр`;
-  const description = "Пүүзний нууц агуулах — хамгийн шинэ загварууд, хурдан хүргэлт";
+  const title = `${name} — Пүүзний нууц агуулах`;
+  const description = "Хамгийн шинэ загварууд, хурдан хүргэлт";
   return {
     metadataBase: new URL("https://altvault.uk"),
     title,
