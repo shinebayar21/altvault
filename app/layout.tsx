@@ -12,8 +12,17 @@ const playfair = Playfair_Display({ subsets: ["latin", "cyrillic"], variable: "-
 const caveat = Caveat({ subsets: ["latin", "cyrillic"], variable: "--font-caveat" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://altvault.uk"),
   title: "KICKS.MN — Пүүзний онлайн дэлгүүр",
-  description: "Шинэ үеийн пүүзний онлайн дэлгүүр — хамгийн шинэ загварууд, хурдан хүргэлт",
+  description: "Пүүзний нууц агуулах — хамгийн шинэ загварууд, хурдан хүргэлт",
+  openGraph: {
+    title: "KICKS.MN — Пүүзний онлайн дэлгүүр",
+    description: "Пүүзний нууц агуулах — хамгийн шинэ загварууд, хурдан хүргэлт",
+    url: "https://altvault.uk",
+    siteName: "KICKS.MN",
+    locale: "mn_MN",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
