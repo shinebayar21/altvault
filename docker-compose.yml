@@ -5,6 +5,10 @@ services:
     restart: unless-stopped
     ports:
       - "8080:3000"
+    # Wire API (api.wire.mn)-г шийдэхэд найдвартай нийтийн DNS (wow-server-ийн туршлага)
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     env_file:
       - shop.env
     volumes:

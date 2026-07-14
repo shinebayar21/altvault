@@ -1,6 +1,7 @@
 import { getSettings } from "@/lib/db";
 import { saveSettings } from "@/lib/actions";
 import { qpayEnabled } from "@/lib/qpay";
+import { wireEnabled } from "@/lib/wire";
 import CleanupButton from "@/components/CleanupButton";
 import ActionForm from "@/components/ActionForm";
 
@@ -67,19 +68,21 @@ export default async function AdminSettings() {
 
         <div
           className={`rounded-2xl border p-4 text-sm ${
-            qpayEnabled()
+            wireEnabled() || qpayEnabled()
               ? "border-lime-400/30 bg-lime-400/10 text-lime-300"
               : "border-zinc-800 bg-zinc-900 text-zinc-400"
           }`}
         >
-          {qpayEnabled() ? (
+          {wireEnabled() ? (
+            <>✅ Wire холбогдсон — захиалга өгөхөд QPay QR автоматаар үүснэ.</>
+          ) : qpayEnabled() ? (
             <>✅ QPay холбогдсон — захиалга өгөхөд QPay QR автоматаар үүснэ.</>
           ) : (
             <>
-              ℹ️ QPay одоогоор идэвхгүй. QPay-тэй мерчант гэрээ хийсний дараа төслийн{" "}
-              <code className="rounded bg-zinc-800 px-1">.env.local</code> файл дотор QPAY_USERNAME,
-              QPAY_PASSWORD, QPAY_INVOICE_CODE-г бөглөөд серверээ дахин асаахад автоматаар
-              идэвхжинэ. Тэр болтол захиалгууд дансаар төлөх горимоор ажиллана.
+              ℹ️ QR төлбөр одоогоор идэвхгүй. Wire (wirepayment.mn) данс нээгээд сервер дээрх{" "}
+              <code className="rounded bg-zinc-800 px-1">shop.env</code> файл дотор WIRE_API_KEY,
+              WIRE_WEBHOOK_SECRET-ийг бөглөж контейнерээ дахин асаахад автоматаар идэвхжинэ. Тэр
+              болтол захиалгууд дансаар төлөх горимоор ажиллана.
             </>
           )}
         </div>

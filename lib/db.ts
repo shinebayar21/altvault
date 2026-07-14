@@ -140,6 +140,8 @@ ensureColumn("banners", "pos_y", "pos_y TEXT NOT NULL DEFAULT 'center'");
 }
 ensureColumn("order_items", "size", "size TEXT NOT NULL DEFAULT ''");
 ensureColumn("order_items", "color", "color TEXT NOT NULL DEFAULT ''");
+// Төлбөрийн платформ: '' (данс) | 'qpay' (шууд) | 'wire'
+ensureColumn("orders", "pay_provider", "pay_provider TEXT NOT NULL DEFAULT ''");
 
 // ----- анхны өгөгдөл (seed) -----
 const catCount = (db.prepare("SELECT COUNT(*) c FROM categories").get() as { c: number }).c;
@@ -239,6 +241,7 @@ export type Order = {
   note: string;
   total: number;
   payment_method: string;
+  pay_provider: string;
   status: string;
   qpay_invoice_id: string | null;
   qpay_qr: string | null;

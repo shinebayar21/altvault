@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import db, { Product } from "@/lib/db";
 import { splitList, variantKey, parseVariantsOut } from "@/lib/format";
 import { qpayEnabled, createInvoice } from "@/lib/qpay";
+import { wireEnabled, createWirePayment } from "@/lib/wire";
 import { randomBytes } from "crypto";
 
 function genCode(): string {
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
   }
 
   const total = lines.reduce((s, l) => s + l.product.price * l.qty, 0);
-  const method = payment_method === "qpay" && qpayEnabled() ? "qpay" : "bank";
+  const method = payment_method === "qpay" && (wireEnabled() || qpayEnabled()) ? "qpay" : "bank";
 
   let code = genCode();
   while (db.prepare("SELECT 1 FROM orders WHERE code = ?").get(code)) code = genCode();
@@ -77,20 +78,28 @@ export async function POST(req: NextRequest) {
   });
   createOrder();
 
-  // QPay идэвхтэй бол нэхэмжлэх үүсгэнэ
+  // QR төлбөр — 1-рт Wire (тохируулсан бол), эс бөгөөс QPay-direct
   if (method === "qpay") {
     try {
-      const inv = await createInvoice(code, total, `Захиалга ${code}`);
-      const payUrl = inv.urls?.find((u) => u.name?.toLowerCase().includes("qpay"))?.link || "";
-      db.prepare("UPDATE orders SET qpay_invoice_id = ?, qpay_qr = ?, qpay_url = ? WHERE code = ?").run(
-        inv.invoice_id,
-        inv.qr_image || "",
-        payUrl,
-        code
-      );
+      if (wireEnabled()) {
+        const pay = await createWirePayment(code, total);
+        const payUrl =
+          pay.urls.find((u) => u.name?.toLowerCase().includes("qpay"))?.link ||
+          pay.urls[0]?.link ||
+          "";
+        db.prepare(
+          "UPDATE orders SET qpay_invoice_id = ?, qpay_qr = ?, qpay_url = ?, pay_provider = 'wire' WHERE code = ?"
+        ).run(pay.intentId, pay.qrImage, payUrl, code);
+      } else {
+        const inv = await createInvoice(code, total, `Захиалга ${code}`);
+        const payUrl = inv.urls?.find((u) => u.name?.toLowerCase().includes("qpay"))?.link || "";
+        db.prepare(
+          "UPDATE orders SET qpay_invoice_id = ?, qpay_qr = ?, qpay_url = ?, pay_provider = 'qpay' WHERE code = ?"
+        ).run(inv.invoice_id, inv.qr_image || "", payUrl, code);
+      }
     } catch (e) {
-      console.error("QPay invoice error:", e);
-      // QPay амжилтгүй бол дансаар төлөх горимд шилжүүлнэ
+      console.error("Payment invoice error:", e);
+      // Төлбөрийн систем амжилтгүй бол дансаар төлөх горимд шилжүүлнэ
       db.prepare("UPDATE orders SET payment_method = 'bank' WHERE code = ?").run(code);
     }
   }
