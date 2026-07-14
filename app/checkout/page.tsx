@@ -7,7 +7,7 @@ import { tugrug } from "@/lib/format";
 import Link from "next/link";
 
 export default function CheckoutPage() {
-  const { items, total, clear } = useCart();
+  const { items, total } = useCart();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -47,7 +47,11 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Алдаа гарлаа");
-      clear();
+      // Сагсыг энд хоослохгүй — төлбөр төлөгдөхөд захиалгын хуудас цэвэрлэнэ
+      // (хүн буцаж ирээд бараа нэмэх, дахин захиалах боломжтой үлдээнэ)
+      try {
+        localStorage.setItem("last_order_code", data.code);
+      } catch {}
       router.push(`/order/${data.code}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Алдаа гарлаа");

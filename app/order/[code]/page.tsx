@@ -3,6 +3,7 @@ import { tugrug, STATUS_LABEL, STATUS_COLOR } from "@/lib/format";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import CheckPaymentButton from "@/components/CheckPaymentButton";
+import CartClearOnPaid from "@/components/CartClearOnPaid";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +19,11 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
     .all(order.id) as OrderItem[];
   const s = getSettings();
 
+  const isPaid = ["paid", "delivering", "delivered"].includes(order.status);
+
   return (
     <div className="mx-auto max-w-2xl">
+      <CartClearOnPaid code={order.code} paid={isPaid} />
       <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-6 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h1 className="font-display text-xl font-extrabold uppercase">
