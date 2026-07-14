@@ -11,19 +11,26 @@ const unbounded = Unbounded({ subsets: ["latin", "cyrillic"], variable: "--font-
 const playfair = Playfair_Display({ subsets: ["latin", "cyrillic"], variable: "--font-playfair" });
 const caveat = Caveat({ subsets: ["latin", "cyrillic"], variable: "--font-caveat" });
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://altvault.uk"),
-  title: "KICKS.MN — Пүүзний онлайн дэлгүүр",
-  description: "Пүүзний нууц агуулах — хамгийн шинэ загварууд, хурдан хүргэлт",
-  openGraph: {
-    title: "KICKS.MN — Пүүзний онлайн дэлгүүр",
-    description: "Пүүзний нууц агуулах — хамгийн шинэ загварууд, хурдан хүргэлт",
-    url: "https://altvault.uk",
-    siteName: "KICKS.MN",
-    locale: "mn_MN",
-    type: "website",
-  },
-};
+// Гарчиг/тайлбарыг админы Тохиргоон дахь дэлгүүрийн нэрээс авна — нэр солиход дагаж өөрчлөгдөнө
+export async function generateMetadata(): Promise<Metadata> {
+  const s = getSettings();
+  const name = s.store_name || "Altvault";
+  const title = `${name} — Пүүзний онлайн дэлгүүр`;
+  const description = "Пүүзний нууц агуулах — хамгийн шинэ загварууд, хурдан хүргэлт";
+  return {
+    metadataBase: new URL("https://altvault.uk"),
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: "https://altvault.uk",
+      siteName: name,
+      locale: "mn_MN",
+      type: "website",
+    },
+  };
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const settings = getSettings();
