@@ -5,11 +5,21 @@
  * (wow-server-ийн ажиллаж буй холболтоос хуулбарласан бүтэц.)
  */
 import { createHmac, timingSafeEqual } from "crypto";
+import { getSettings } from "@/lib/db";
 
 const WIRE_API = "https://api.wire.mn";
 
+/** Түлхүүрүүд: 1-рт админ Тохиргоо (DB settings), 2-рт shop.env */
+function wireKeys() {
+  const s = getSettings();
+  return {
+    apiKey: (s.wire_api_key || process.env.WIRE_API_KEY || "").trim(),
+    webhookSecret: (s.wire_webhook_secret || process.env.WIRE_WEBHOOK_SECRET || "").trim(),
+  };
+}
+
 export function wireEnabled(): boolean {
-  return !!process.env.WIRE_API_KEY;
+  return !!wireKeys().apiKey;
 }
 
 function siteUrl(): string {
@@ -26,7 +36,7 @@ export type WirePayment = {
 /** PaymentIntent үүсгээд QPay operator руу confirm хийж QR-ийг буцаана */
 export async function createWirePayment(orderCode: string, amount: number): Promise<WirePayment> {
   const headers = {
-    Authorization: `Bearer ${process.env.WIRE_API_KEY}`,
+    Authorization: `Bearer ${wireKeys().apiKey}`,
     "Content-Type": "application/json",
   };
   const r1 = await fetch(`${WIRE_API}/v1/payment_intents`, {
@@ -73,7 +83,7 @@ export async function createWirePayment(orderCode: string, amount: number): Prom
 /** Intent төлөгдсөн эсэх ("succeeded" = төлөгдсөн) */
 export async function wirePaid(intentId: string): Promise<boolean> {
   const r = await fetch(`${WIRE_API}/v1/payment_intents/${intentId}`, {
-    headers: { Authorization: `Bearer ${process.env.WIRE_API_KEY}` },
+    headers: { Authorization: `Bearer ${wireKeys().apiKey}` },
     signal: AbortSignal.timeout(15000),
   });
   if (!r.ok) return false;
@@ -86,7 +96,7 @@ export async function wirePaid(intentId: string): Promise<boolean> {
  * expected = HMAC_SHA256(secret, t + "." + rawBody); now - t < 300с.
  */
 export function wireVerifySignature(sigHeader: string | null, rawBody: string): boolean {
-  const secret = process.env.WIRE_WEBHOOK_SECRET || "";
+  const secret = wireKeys().webhookSecret;
   if (!secret || !sigHeader) return false;
   const parts: Record<string, string> = {};
   for (const kv of sigHeader.split(",")) {

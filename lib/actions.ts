@@ -456,7 +456,15 @@ export async function cleanupUploads(): Promise<{ message: string }> {
 // ---------- Тохиргоо ----------
 export async function saveSettings(formData: FormData) {
   await requireAdmin();
-  const keys = ["store_name", "bank_name", "bank_account", "bank_holder", "phone"];
+  const keys = [
+    "store_name",
+    "bank_name",
+    "bank_account",
+    "bank_holder",
+    "phone",
+    "wire_api_key",
+    "wire_webhook_secret",
+  ];
   const up = db.prepare(
     "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
   );

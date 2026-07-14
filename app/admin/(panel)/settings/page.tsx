@@ -66,6 +66,38 @@ export default async function AdminSettings() {
           </div>
         </div>
 
+        <div className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
+          <div className="text-sm font-semibold uppercase tracking-wider text-zinc-400">
+            💳 Wire (wirepayment.mn) QR төлбөр
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-zinc-300">API key</label>
+            <input
+              name="wire_api_key"
+              defaultValue={s.wire_api_key}
+              placeholder="sk_live_..."
+              autoComplete="off"
+              className={input}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-zinc-300">Webhook secret</label>
+            <input
+              name="wire_webhook_secret"
+              defaultValue={s.wire_webhook_secret}
+              placeholder="whsec_..."
+              autoComplete="off"
+              className={input}
+            />
+          </div>
+          <p className="text-xs text-zinc-500">
+            Wire dashboard дээр webhook хаягаа{" "}
+            <code className="rounded bg-zinc-800 px-1">https://altvault.uk/api/wire/callback</code>{" "}
+            гэж бүртгүүлээрэй. Хоёр талбарыг бөглөж хадгалмагц QR төлбөр шууд идэвхжинэ — сервер
+            дахин асаах шаардлагагүй.
+          </p>
+        </div>
+
         <div
           className={`rounded-2xl border p-4 text-sm ${
             wireEnabled() || qpayEnabled()
@@ -79,10 +111,8 @@ export default async function AdminSettings() {
             <>✅ QPay холбогдсон — захиалга өгөхөд QPay QR автоматаар үүснэ.</>
           ) : (
             <>
-              ℹ️ QR төлбөр одоогоор идэвхгүй. Wire (wirepayment.mn) данс нээгээд сервер дээрх{" "}
-              <code className="rounded bg-zinc-800 px-1">shop.env</code> файл дотор WIRE_API_KEY,
-              WIRE_WEBHOOK_SECRET-ийг бөглөж контейнерээ дахин асаахад автоматаар идэвхжинэ. Тэр
-              болтол захиалгууд дансаар төлөх горимоор ажиллана.
+              ℹ️ QR төлбөр одоогоор идэвхгүй. Дээрх Wire талбаруудыг бөглөж хадгалахад автоматаар
+              идэвхжинэ. Тэр болтол захиалгууд дансаар төлөх горимоор ажиллана.
             </>
           )}
         </div>
