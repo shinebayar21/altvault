@@ -22,12 +22,14 @@ CREATE TABLE IF NOT EXISTS products (
   name TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '',
   price INTEGER NOT NULL,
+  sale_price INTEGER NOT NULL DEFAULT 0,
   stock INTEGER NOT NULL DEFAULT 0,
   image TEXT NOT NULL DEFAULT '/img/placeholder.svg',
   sizes TEXT NOT NULL DEFAULT '',
   colors TEXT NOT NULL DEFAULT '',
   variants_out TEXT NOT NULL DEFAULT '[]',
   color_images TEXT NOT NULL DEFAULT '{}',
+  color_prices TEXT NOT NULL DEFAULT '{}',
   category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
   active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -99,6 +101,10 @@ ensureColumn("products", "colors", "colors TEXT NOT NULL DEFAULT ''");
 ensureColumn("products", "variants_out", "variants_out TEXT NOT NULL DEFAULT '[]'");
 // өнгө бүрийн зураг: {"Хар":"/api/uploads/xx.jpg"}
 ensureColumn("products", "color_images", "color_images TEXT NOT NULL DEFAULT '{}'");
+// хямдралтай үнэ (₮, 0 = хямдралгүй)
+ensureColumn("products", "sale_price", "sale_price INTEGER NOT NULL DEFAULT 0");
+// өнгө бүрийн үнэ/хямдрал: {"Хар":{"price":150000,"sale":120000}} — талбарууд заавал биш
+ensureColumn("products", "color_prices", "color_prices TEXT NOT NULL DEFAULT '{}'");
 ensureColumn("categories", "image", "image TEXT NOT NULL DEFAULT ''");
 // реклам зурган дээрх текст, фонт, өнгө
 ensureColumn("banners", "title", "title TEXT NOT NULL DEFAULT ''");
@@ -203,12 +209,14 @@ export type Product = {
   name: string;
   description: string;
   price: number;
+  sale_price: number;
   stock: number;
   image: string;
   sizes: string;
   colors: string;
   variants_out: string;
   color_images: string;
+  color_prices: string;
   category_id: number | null;
   active: number;
   created_at: string;

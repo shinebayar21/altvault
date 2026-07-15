@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { Product } from "@/lib/db";
-import { tugrug, parseColorImages } from "@/lib/format";
+import { tugrug, parseColorImages, priceInfo, minPriceInfo } from "@/lib/format";
 import AddToCart from "./AddToCart";
 
 /** Барааны дэлгэрэнгүй — сонгосон өнгөний зургуудыг галерей хэлбэрээр харуулна */
@@ -75,7 +75,29 @@ export default function ProductView({ p }: { p: Product }) {
           </div>
         )}
         <h1 className="font-display text-3xl font-extrabold uppercase leading-tight">{p.name}</h1>
-        <div className="mt-3 font-display text-3xl font-bold text-lime-400">{tugrug(p.price)}</div>
+        {(() => {
+          // Сонгосон өнгөний хямдрал/үнэ — өнгө солиход шууд шинэчлэгдэнэ;
+          // өнгө сонгоогүй үед хамгийн бага үнийг "-с" дагавартай харуулна
+          const pi = sel.color ? { ...priceInfo(p, sel.color), varies: false } : minPriceInfo(p);
+          return (
+            <div className="mt-3 flex flex-wrap items-baseline gap-3">
+              {pi.off && (
+                <span className="font-display text-xl font-semibold text-zinc-500 line-through">
+                  {tugrug(pi.base)}
+                </span>
+              )}
+              <span className="font-display text-3xl font-bold text-lime-400">
+                {tugrug(pi.current)}
+                {pi.varies && <span className="text-xl text-zinc-400">-с</span>}
+              </span>
+              {pi.off && (
+                <span className="rounded-full bg-orange-500 px-2.5 py-1 text-xs font-bold uppercase text-white">
+                  -{Math.round((1 - pi.current / pi.base) * 100)}%
+                </span>
+              )}
+            </div>
+          );
+        })()}
         <p className="mt-5 whitespace-pre-line leading-relaxed text-zinc-300">{p.description}</p>
         <div className="mt-7 border-t border-zinc-800 pt-7">
           <AddToCart p={p} onColorChange={setColor} />

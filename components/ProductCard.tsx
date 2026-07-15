@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Product } from "@/lib/db";
-import { tugrug, splitList, parseVariantsOut, allCombos } from "@/lib/format";
+import { tugrug, splitList, parseVariantsOut, allCombos, minPriceInfo } from "@/lib/format";
 
 export default function ProductCard({ p }: { p: Product }) {
   const sizes = splitList(p.sizes);
@@ -9,6 +9,7 @@ export default function ProductCard({ p }: { p: Product }) {
   const combos = allCombos(colors, sizes);
   const allOut = combos.length > 0 && combos.every((k) => outSet.has(k));
   const someOut = !allOut && combos.some((k) => outSet.has(k));
+  const pi = minPriceInfo(p);
   return (
     <Link
       href={`/products/${p.id}`}
@@ -33,6 +34,15 @@ export default function ProductCard({ p }: { p: Product }) {
             Зарим нь дууссан
           </span>
         )}
+        {pi.off && !allOut && (
+          <span
+            className={`absolute left-2.5 rounded-full bg-red-500 px-2.5 py-1 text-[11px] font-bold uppercase text-white ${
+              someOut ? "top-10" : "top-2.5"
+            }`}
+          >
+            -{Math.round((1 - pi.current / pi.base) * 100)}%
+          </span>
+        )}
         {p.category_name && (
           <span className="absolute top-2.5 right-2.5 rounded-full bg-zinc-950/80 px-2.5 py-1 text-[11px] font-semibold text-zinc-300 backdrop-blur-sm">
             {p.category_name}
@@ -43,7 +53,15 @@ export default function ProductCard({ p }: { p: Product }) {
         <div className="line-clamp-2 text-sm font-semibold text-zinc-100 transition group-hover:text-lime-400">
           {p.name}
         </div>
-        <div className="mt-1.5 font-display font-bold text-lime-400">{tugrug(p.price)}</div>
+        <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
+          {pi.off && (
+            <span className="text-sm font-semibold text-zinc-500 line-through">{tugrug(pi.base)}</span>
+          )}
+          <span className="font-display font-bold text-lime-400">
+            {tugrug(pi.current)}
+            {pi.varies && <span className="font-sans text-xs font-normal text-zinc-400">-с</span>}
+          </span>
+        </div>
         {sizes.length > 0 && (
           <div className="mt-1.5 truncate text-xs text-zinc-500">
             Размер: {sizes[0]}–{sizes[sizes.length - 1]}

@@ -7,6 +7,7 @@ import {
   parseVariantsOut,
   parseColorImages,
   MAX_COLOR_IMAGES,
+  type ColorPrice,
   BANNER_FONTS,
   BANNER_POS_X,
   BANNER_POS_Y,
@@ -125,6 +126,31 @@ export async function saveProduct(
 
   if (!name || !price || price < 0) return { error: "Нэр, үнээ зөв бөглөнө үү" };
 
+  // Хямдралтай үнэ (₮, шууд дүнгээр) — хоосон бол 0 = хямдралгүй
+  const readPrice = (v: FormDataEntryValue | null): number => {
+    const n = Math.floor(Number(String(v ?? "").trim()));
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  };
+  const sale_price = readPrice(formData.get("sale_price"));
+  if (sale_price && sale_price >= price)
+    return { error: "Хямдралтай үнэ үндсэн үнээс бага байх ёстой" };
+
+  // Өнгө бүрийн үнэ/хямдрал — хоосон талбар нь үндсэн үнэ/хямдралдаа үлдэнэ
+  const colorPrices: Record<string, ColorPrice> = {};
+  for (const c of splitList(colors)) {
+    const cp: ColorPrice = {};
+    const cPrice = readPrice(formData.get(`colorprice:${c}`));
+    const cSale = readPrice(formData.get(`colorsale:${c}`));
+    if (cPrice) cp.price = cPrice;
+    if (cSale) {
+      if (cSale >= (cPrice || price))
+        return { error: `"${c}" өнгөний хямдралтай үнэ үнээсээ бага байх ёстой` };
+      cp.sale = cSale;
+    }
+    if (cp.price !== undefined || cp.sale !== undefined) colorPrices[c] = cp;
+  }
+  const color_prices = JSON.stringify(colorPrices);
+
   // Хэрэггүй болсон хуучин зургууд (DB бичилт амжилттай болсны ДАРАА устгана)
   const removedUploads: string[] = [];
   // Энэ хүсэлтээр шинээр хадгалсан файлууд (алдаа гарвал буцааж устгана)
@@ -196,17 +222,17 @@ export async function saveProduct(
     );
     if (image) {
       db.prepare(
-        "UPDATE products SET name=?, description=?, price=?, sizes=?, colors=?, variants_out=?, color_images=?, category_id=?, active=?, image=? WHERE id=?"
-      ).run(name, description, price, sizes, colors, variants_out, color_images, category_id, active, image, id);
+        "UPDATE products SET name=?, description=?, price=?, sale_price=?, sizes=?, colors=?, variants_out=?, color_images=?, color_prices=?, category_id=?, active=?, image=? WHERE id=?"
+      ).run(name, description, price, sale_price, sizes, colors, variants_out, color_images, color_prices, category_id, active, image, id);
     } else {
       db.prepare(
-        "UPDATE products SET name=?, description=?, price=?, sizes=?, colors=?, variants_out=?, color_images=?, category_id=?, active=? WHERE id=?"
-      ).run(name, description, price, sizes, colors, variants_out, color_images, category_id, active, id);
+        "UPDATE products SET name=?, description=?, price=?, sale_price=?, sizes=?, colors=?, variants_out=?, color_images=?, color_prices=?, category_id=?, active=? WHERE id=?"
+      ).run(name, description, price, sale_price, sizes, colors, variants_out, color_images, color_prices, category_id, active, id);
     }
   } else {
     db.prepare(
-      "INSERT INTO products (name, description, price, sizes, colors, color_images, category_id, active, image) VALUES (?,?,?,?,?,?,?,?,?)"
-    ).run(name, description, price, sizes, colors, color_images, category_id, active, image || "/img/placeholder.svg");
+      "INSERT INTO products (name, description, price, sale_price, sizes, colors, color_images, color_prices, category_id, active, image) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+    ).run(name, description, price, sale_price, sizes, colors, color_images, color_prices, category_id, active, image || "/img/placeholder.svg");
   }
   // DB шинэчлэгдсэн тул хэрэггүй болсон файлуудыг устгана
   for (const u of removedUploads) deleteUploadIfUnused(u);

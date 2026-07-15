@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { saveProduct } from "@/lib/actions";
 import type { Product, Category } from "@/lib/db";
-import { splitList, parseColorImages, MAX_COLOR_IMAGES } from "@/lib/format";
+import { splitList, parseColorImages, parseColorPrices, MAX_COLOR_IMAGES } from "@/lib/format";
 import Link from "next/link";
 
 const QUICK_SIZES = ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46"];
@@ -20,6 +20,7 @@ export default function ProductForm({
   const [colors, setColors] = useState(product?.colors || "");
   const colorList = splitList(colors);
   const colorImages = parseColorImages(product?.color_images);
+  const colorPrices = parseColorPrices(product?.color_prices);
   const input =
     "w-full rounded-xl border border-zinc-700 bg-zinc-950 px-4 py-2.5 text-zinc-100 placeholder-zinc-600 transition focus:border-lime-400 focus:outline-none";
 
@@ -46,9 +47,22 @@ export default function ProductForm({
             className={input}
           />
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-300">Үнэ (₮) *</label>
-          <input name="price" type="number" min="0" required defaultValue={product?.price} className={input} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-zinc-300">Үнэ (₮) *</label>
+            <input name="price" type="number" min="0" required defaultValue={product?.price} className={input} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-zinc-300">Хямдралтай үнэ (₮)</label>
+            <input
+              name="sale_price"
+              type="number"
+              min="0"
+              placeholder="Хоосон = хямдралгүй"
+              defaultValue={product?.sale_price || ""}
+              className={input}
+            />
+          </div>
         </div>
 
         <div>
@@ -89,13 +103,37 @@ export default function ProductForm({
         {colorList.length > 0 && (
           <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-3.5">
             <div className="text-sm font-medium text-zinc-300">
-              Өнгө бүрийн зураг — {MAX_COLOR_IMAGES} хүртэл (заавал биш)
+              Өнгө бүрийн үнэ ба зураг — зураг {MAX_COLOR_IMAGES} хүртэл (заавал биш)
             </div>
             {colorList.map((c) => {
               const imgs = colorImages[c] || [];
               return (
                 <div key={c} className="rounded-lg border border-zinc-800 p-2.5">
                   <div className="mb-2 text-sm font-semibold text-zinc-200">{c}</div>
+                  <div className="mb-2.5 grid gap-2 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-xs text-zinc-500">Үнэ (₮) — хоосон бол үндсэн үнэ</label>
+                      <input
+                        name={`colorprice:${c}`}
+                        type="number"
+                        min="0"
+                        placeholder={String(product?.price ?? "")}
+                        defaultValue={colorPrices[c]?.price ?? ""}
+                        className={input}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-zinc-500">Хямдралтай үнэ (₮)</label>
+                      <input
+                        name={`colorsale:${c}`}
+                        type="number"
+                        min="0"
+                        placeholder="Хоосон = хямдралгүй"
+                        defaultValue={colorPrices[c]?.sale ?? ""}
+                        className={input}
+                      />
+                    </div>
+                  </div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {Array.from({ length: MAX_COLOR_IMAGES }, (_, i) => (
                       <div key={i} className="flex items-center gap-2">

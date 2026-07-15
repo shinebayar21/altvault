@@ -73,6 +73,61 @@ export function parseColorImages(v: string | null | undefined): Record<string, s
   return {};
 }
 
+// ----- үнэ: хямдрал + өнгө бүрийн үнэ -----
+
+/** color_prices багана — өнгө бүрийн үнэ/хямдралын JSON: {"Хар":{"price":150000,"sale":120000}} */
+export type ColorPrice = { price?: number; sale?: number };
+
+export function parseColorPrices(v: string | null | undefined): Record<string, ColorPrice> {
+  try {
+    const o = JSON.parse(v || "{}");
+    if (o && typeof o === "object" && !Array.isArray(o)) {
+      const out: Record<string, ColorPrice> = {};
+      for (const [k, val] of Object.entries(o)) {
+        if (!val || typeof val !== "object" || Array.isArray(val)) continue;
+        const cp: ColorPrice = {};
+        const { price, sale } = val as { price?: unknown; sale?: unknown };
+        if (typeof price === "number" && Number.isFinite(price) && price > 0) cp.price = Math.floor(price);
+        if (typeof sale === "number" && Number.isFinite(sale) && sale > 0) cp.sale = Math.floor(sale);
+        if (cp.price !== undefined || cp.sale !== undefined) out[k] = cp;
+      }
+      return out;
+    }
+  } catch {}
+  return {};
+}
+
+type Priced = { price: number; sale_price?: number; color_prices?: string };
+
+/**
+ * Сонгосон өнгийг харгалзсан хүчинтэй үнэ.
+ * base — зурж харуулах хуучин үнэ, current — төлөх үнэ, off — хямдралтай эсэх.
+ * Өнгөнд өөрийн үнэ байвал барааны түвшний хямдрал түүнд үйлчлэхгүй (өнгөний sale л үйлчилнэ);
+ * өнгөнд зөвхөн sale байвал үндсэн үнийн эсрэг үйлчилнэ. Хямдрал 0 < sale < base үед л хүчинтэй.
+ */
+export function priceInfo(p: Priced, color?: string): { base: number; current: number; off: boolean } {
+  const cp = color ? parseColorPrices(p.color_prices)[color] : undefined;
+  const base = cp?.price ?? p.price;
+  const sale = cp?.price !== undefined ? (cp.sale ?? 0) : (cp?.sale ?? p.sale_price ?? 0);
+  const off = sale > 0 && sale < base;
+  return { base, current: off ? sale : base, off };
+}
+
+/**
+ * Барааны картад (өнгө сонгогдоогүй): бүх өнгөний доторх хамгийн бага төлөх үнэ.
+ * varies — өнгөнүүдийн үнэ ялгаатай эсэх ("...₮-с" гэж харуулахад).
+ */
+export function minPriceInfo(
+  p: Priced & { colors?: string }
+): { base: number; current: number; off: boolean; varies: boolean } {
+  const colors = splitList(p.colors);
+  const infos = colors.length ? colors.map((c) => priceInfo(p, c)) : [priceInfo(p)];
+  let min = infos[0];
+  for (const i of infos) if (i.current < min.current) min = i;
+  const varies = infos.some((i) => i.current !== min.current);
+  return { ...min, varies };
+}
+
 /** Барааны бүх боломжит хослолын түлхүүрүүд (өнгө/размергүй бол хоосон массив) */
 export function allCombos(colors: string[], sizes: string[]): string[] {
   if (colors.length === 0 && sizes.length === 0) return [];

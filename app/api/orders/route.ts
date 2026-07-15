@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import db, { Product } from "@/lib/db";
-import { splitList, variantKey, parseVariantsOut } from "@/lib/format";
+import { splitList, variantKey, parseVariantsOut, priceInfo } from "@/lib/format";
 import { qpayEnabled, createInvoice } from "@/lib/qpay";
 import { wireEnabled, createWirePayment } from "@/lib/wire";
 import { randomBytes } from "crypto";
@@ -53,7 +53,8 @@ export async function POST(req: NextRequest) {
     lines.push({ product: p, qty, size, color });
   }
 
-  const total = lines.reduce((s, l) => s + l.product.price * l.qty, 0);
+  // Хямдрал + өнгөний үнийг харгалзсан хүчинтэй үнэ (клиентийн үнийг үл ашиглана)
+  const total = lines.reduce((s, l) => s + priceInfo(l.product, l.color).current * l.qty, 0);
   const method = payment_method === "qpay" && (wireEnabled() || qpayEnabled()) ? "qpay" : "bank";
 
   let code = genCode();
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
     );
     // Үлдэгдэл тооцдоггүй тул stock-оос хасахгүй
     for (const l of lines) {
-      insItem.run(orderId, l.product.id, l.product.name, l.product.price, l.qty, l.size, l.color);
+      insItem.run(orderId, l.product.id, l.product.name, priceInfo(l.product, l.color).current, l.qty, l.size, l.color);
     }
     return orderId;
   });

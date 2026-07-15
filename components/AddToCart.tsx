@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useCart } from "./CartProvider";
 import type { Product } from "@/lib/db";
-import { splitList, variantKey, parseVariantsOut, allCombos, parseColorImages } from "@/lib/format";
+import { splitList, variantKey, parseVariantsOut, allCombos, parseColorImages, priceInfo } from "@/lib/format";
 
 export default function AddToCart({
   p,
@@ -75,7 +75,14 @@ export default function AddToCart({
     }
     setWarn("");
     add(
-      { id: p.id, name: p.name, price: p.price, image: (color && colorImages[color]?.[0]) || p.image, size, color },
+      {
+        id: p.id,
+        name: p.name,
+        price: priceInfo(p, color || undefined).current,
+        image: (color && colorImages[color]?.[0]) || p.image,
+        size,
+        color,
+      },
       qty
     );
     setAdded(true);

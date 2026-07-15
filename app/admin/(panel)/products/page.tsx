@@ -1,5 +1,5 @@
 import db, { Product } from "@/lib/db";
-import { tugrug } from "@/lib/format";
+import { tugrug, minPriceInfo } from "@/lib/format";
 import ToggleActive from "@/components/ToggleActive";
 import VariantMatrix from "@/components/VariantMatrix";
 import Link from "next/link";
@@ -65,7 +65,22 @@ export default async function AdminProducts() {
                   {p.category_name || "Категоригүй"}
                 </div>
               </div>
-              <div className="shrink-0 text-right text-sm font-medium">{tugrug(p.price)}</div>
+              <div className="shrink-0 text-right text-sm font-medium">
+                {(() => {
+                  const pi = minPriceInfo(p);
+                  return (
+                    <>
+                      {pi.off && (
+                        <div className="text-xs text-zinc-500 line-through">{tugrug(pi.base)}</div>
+                      )}
+                      <div className={pi.off ? "text-lime-400" : ""}>
+                        {tugrug(pi.current)}
+                        {pi.varies && <span className="text-xs font-normal text-zinc-500">-с</span>}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
               <Link
                 href={`/admin/products/${p.id}`}
                 className="shrink-0 rounded-xl border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 transition hover:border-lime-400 hover:text-lime-400"
