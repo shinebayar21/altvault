@@ -90,11 +90,6 @@ export default function ProductView({ p }: { p: Product }) {
                 {tugrug(pi.current)}
                 {pi.varies && <span className="text-xl text-zinc-400">-с</span>}
               </span>
-              {pi.off && (
-                <span className="rounded-full bg-orange-500 px-2.5 py-1 text-xs font-bold uppercase text-white">
-                  -{Math.round((1 - pi.current / pi.base) * 100)}%
-                </span>
-              )}
             </div>
           );
         })()}

@@ -23,6 +23,8 @@ export default function ProductForm({
   const colorPrices = parseColorPrices(product?.color_prices);
   const input =
     "w-full rounded-xl border border-zinc-700 bg-zinc-950 px-4 py-2.5 text-zinc-100 placeholder-zinc-600 transition focus:border-lime-400 focus:outline-none";
+  // Тоон талбар дээр хулгана байхад хуудас гүйлгэхэд browser утгыг өөрчилдгөөс сэргийлнэ
+  const noWheel = (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur();
 
   const toggleSize = (s: string) =>
     setSizes((prev) =>
@@ -50,7 +52,7 @@ export default function ProductForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-medium text-zinc-300">Үнэ (₮) *</label>
-            <input name="price" type="number" min="0" required defaultValue={product?.price} className={input} />
+            <input name="price" type="number" min="0" required defaultValue={product?.price} onWheel={noWheel} className={input} />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-zinc-300">Хямдралтай үнэ (₮)</label>
@@ -60,6 +62,7 @@ export default function ProductForm({
               min="0"
               placeholder="Хоосон = хямдралгүй"
               defaultValue={product?.sale_price || ""}
+              onWheel={noWheel}
               className={input}
             />
           </div>
@@ -119,6 +122,7 @@ export default function ProductForm({
                         min="0"
                         placeholder={String(product?.price ?? "")}
                         defaultValue={colorPrices[c]?.price ?? ""}
+                        onWheel={noWheel}
                         className={input}
                       />
                     </div>
@@ -130,6 +134,7 @@ export default function ProductForm({
                         min="0"
                         placeholder="Хоосон = хямдралгүй"
                         defaultValue={colorPrices[c]?.sale ?? ""}
+                        onWheel={noWheel}
                         className={input}
                       />
                     </div>

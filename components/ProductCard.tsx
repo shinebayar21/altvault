@@ -34,15 +34,6 @@ export default function ProductCard({ p }: { p: Product }) {
             Зарим нь дууссан
           </span>
         )}
-        {pi.off && !allOut && (
-          <span
-            className={`absolute left-2.5 rounded-full bg-red-500 px-2.5 py-1 text-[11px] font-bold uppercase text-white ${
-              someOut ? "top-10" : "top-2.5"
-            }`}
-          >
-            -{Math.round((1 - pi.current / pi.base) * 100)}%
-          </span>
-        )}
         {p.category_name && (
           <span className="absolute top-2.5 right-2.5 rounded-full bg-zinc-950/80 px-2.5 py-1 text-[11px] font-semibold text-zinc-300 backdrop-blur-sm">
             {p.category_name}
