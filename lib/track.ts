@@ -57,12 +57,13 @@ export function parseTrackData(v: string | null | undefined): TrackData | null {
   }
 }
 
-/** Kuaidi100-аас илгээмжийн явцыг татна — алдаанд throw хийхгүй, error талбартай буцаана */
-export async function fetchTrack(com: string, no: string): Promise<TrackData> {
+/** Kuaidi100-аас илгээмжийн явцыг татна — алдаанд throw хийхгүй, error талбартай буцаана.
+ *  phone: YTO/SF г.м. нууцлалын шалгалттай курьерт хүлээн авагч/илгээгчийн утас (сүүлийн 4 орон хангалттай) */
+export async function fetchTrack(com: string, no: string, phone = ""): Promise<TrackData> {
   const checked = new Date().toISOString().slice(0, 16).replace("T", " ");
   try {
     const r = await fetch(
-      `https://www.kuaidi100.com/query?type=${encodeURIComponent(com)}&postid=${encodeURIComponent(no)}`,
+      `https://www.kuaidi100.com/query?type=${encodeURIComponent(com)}&postid=${encodeURIComponent(no)}&phone=${encodeURIComponent(phone)}`,
       {
         headers: {
           Referer: "https://www.kuaidi100.com/",
@@ -85,7 +86,9 @@ export async function fetchTrack(com: string, no: string): Promise<TrackData> {
         state: "",
         events: [],
         checked,
-        error: "Мэдээлэл олдсонгүй — дугаар шинэ, эсвэл курьер буруу сонгогдсон байж болно",
+        error: phone
+          ? "Мэдээлэл олдсонгүй — дугаар/утас зөв эсэхийг шалгана уу (дугаар шинэ бол дараа дахин оролдоорой)"
+          : "Мэдээлэл олдсонгүй — YTO/SF бол хүлээн авагчийн утасны сүүлийн 4 оронг нэмж өгөөд дахин оролдоно уу",
       };
     return { state: String(d.state ?? ""), events, checked };
   } catch {

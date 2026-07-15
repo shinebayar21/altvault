@@ -152,6 +152,8 @@ ensureColumn("orders", "pay_provider", "pay_provider TEXT NOT NULL DEFAULT ''");
 ensureColumn("orders", "track_com", "track_com TEXT NOT NULL DEFAULT ''");
 ensureColumn("orders", "track_no", "track_no TEXT NOT NULL DEFAULT ''");
 ensureColumn("orders", "track_data", "track_data TEXT NOT NULL DEFAULT ''");
+// YTO/SF г.м. нууцлалын шалгалттай курьерт хүлээн авагчийн утас (сүүлийн 4 орон хангалттай)
+ensureColumn("orders", "track_phone", "track_phone TEXT NOT NULL DEFAULT ''");
 
 // ----- анхны өгөгдөл (seed) -----
 const catCount = (db.prepare("SELECT COUNT(*) c FROM categories").get() as { c: number }).c;
@@ -260,6 +262,7 @@ export type Order = {
   qpay_url: string | null;
   track_com: string;
   track_no: string;
+  track_phone: string;
   track_data: string;
   created_at: string;
 };

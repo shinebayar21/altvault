@@ -70,16 +70,20 @@ export async function setOrderTrack(orderId: number, formData: FormData) {
   if (!db.prepare("SELECT id FROM orders WHERE id = ?").get(orderId)) return;
   const no = String(formData.get("track_no") || "").replace(/\s+/g, "");
   const com = String(formData.get("track_com") || "");
+  const phone = String(formData.get("track_phone") || "").replace(/\D/g, "").slice(-11);
   if (!no) {
-    db.prepare("UPDATE orders SET track_no='', track_com='', track_data='' WHERE id = ?").run(orderId);
+    db.prepare(
+      "UPDATE orders SET track_no='', track_com='', track_phone='', track_data='' WHERE id = ?"
+    ).run(orderId);
     revalidatePath("/admin/orders");
     return;
   }
   if (!TRACK_COMS.some((c) => c.code === com)) return;
-  const data = await fetchTrack(com, no);
-  db.prepare("UPDATE orders SET track_no=?, track_com=?, track_data=? WHERE id = ?").run(
+  const data = await fetchTrack(com, no, phone);
+  db.prepare("UPDATE orders SET track_no=?, track_com=?, track_phone=?, track_data=? WHERE id = ?").run(
     no,
     com,
+    phone,
     JSON.stringify(data),
     orderId
   );
@@ -89,11 +93,11 @@ export async function setOrderTrack(orderId: number, formData: FormData) {
 /** Холбогдсон дугаарын явцыг Kuaidi100-аас дахин татна */
 export async function refreshOrderTrack(orderId: number) {
   await requireAdmin();
-  const o = db.prepare("SELECT track_no, track_com FROM orders WHERE id = ?").get(orderId) as
-    | { track_no: string; track_com: string }
+  const o = db.prepare("SELECT track_no, track_com, track_phone FROM orders WHERE id = ?").get(orderId) as
+    | { track_no: string; track_com: string; track_phone: string }
     | undefined;
   if (!o?.track_no || !o.track_com) return;
-  const data = await fetchTrack(o.track_com, o.track_no);
+  const data = await fetchTrack(o.track_com, o.track_no, o.track_phone);
   db.prepare("UPDATE orders SET track_data=? WHERE id = ?").run(JSON.stringify(data), orderId);
   revalidatePath("/admin/orders");
 }

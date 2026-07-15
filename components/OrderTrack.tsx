@@ -25,6 +25,13 @@ export default function OrderTrack({ order }: { order: Order }) {
         placeholder="Илгээмжийн дугаар"
         className={`${inputCls} w-48`}
       />
+      <input
+        name="track_phone"
+        defaultValue={order.track_phone}
+        placeholder="Хүлээн авагчийн утас (YTO/SF)"
+        title="YTO, SF зэрэг курьер нууцлалын шалгалт хийдэг — Хятад дахь хүлээн авагчийн утасны сүүлийн 4 орон хангалттай"
+        className={`${inputCls} w-44`}
+      />
       <button className="rounded-lg bg-zinc-100 px-3 py-1.5 text-sm font-semibold text-zinc-950 transition hover:bg-lime-400">
         Хадгалах
       </button>
