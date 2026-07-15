@@ -11,6 +11,10 @@ const unbounded = Unbounded({ subsets: ["latin", "cyrillic"], variable: "--font-
 const playfair = Playfair_Display({ subsets: ["latin", "cyrillic"], variable: "--font-playfair" });
 const caveat = Caveat({ subsets: ["latin", "cyrillic"], variable: "--font-caveat" });
 
+// Бүх хуудсыг хүсэлтийн үед render хийнэ — static prerender нь build үеийн
+// хоосон seed DB-ээс (KICKS.MN г.м.) хуучин тохиргоог HTML-д шингээдэг байсан
+export const dynamic = "force-dynamic";
+
 // Гарчиг/тайлбарыг админы Тохиргоон дахь дэлгүүрийн нэрээс авна — нэр солиход дагаж өөрчлөгдөнө
 export async function generateMetadata(): Promise<Metadata> {
   const s = getSettings();
@@ -34,7 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const settings = getSettings();
-  const storeName = settings.store_name || "KICKS.MN";
+  const storeName = settings.store_name || "Altvault";
   return (
     <html lang="mn" className={`${inter.variable} ${unbounded.variable} ${playfair.variable} ${caveat.variable}`}>
       <body className="antialiased">
