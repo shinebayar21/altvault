@@ -14,6 +14,7 @@ import {
   BANNER_POS_Y,
 } from "@/lib/format";
 import { makeToken, requireAdmin, AUTH_COOKIE } from "@/lib/auth";
+import { TRACK_COMS, fetchTrack } from "@/lib/track";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -58,6 +59,42 @@ export async function setOrderStatus(orderId: number, status: string) {
   const order = db.prepare("SELECT id FROM orders WHERE id = ?").get(orderId);
   if (!order) return;
   db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, orderId);
+  revalidatePath("/admin/orders");
+}
+
+// ---------- Хятад талын илгээмжийн tracking (Kuaidi100) ----------
+
+/** Захиалгад Хятад курьерийн дугаар холбоно (хоосон дугаар = салгана), шууд нэг удаа шалгана */
+export async function setOrderTrack(orderId: number, formData: FormData) {
+  await requireAdmin();
+  if (!db.prepare("SELECT id FROM orders WHERE id = ?").get(orderId)) return;
+  const no = String(formData.get("track_no") || "").replace(/\s+/g, "");
+  const com = String(formData.get("track_com") || "");
+  if (!no) {
+    db.prepare("UPDATE orders SET track_no='', track_com='', track_data='' WHERE id = ?").run(orderId);
+    revalidatePath("/admin/orders");
+    return;
+  }
+  if (!TRACK_COMS.some((c) => c.code === com)) return;
+  const data = await fetchTrack(com, no);
+  db.prepare("UPDATE orders SET track_no=?, track_com=?, track_data=? WHERE id = ?").run(
+    no,
+    com,
+    JSON.stringify(data),
+    orderId
+  );
+  revalidatePath("/admin/orders");
+}
+
+/** Холбогдсон дугаарын явцыг Kuaidi100-аас дахин татна */
+export async function refreshOrderTrack(orderId: number) {
+  await requireAdmin();
+  const o = db.prepare("SELECT track_no, track_com FROM orders WHERE id = ?").get(orderId) as
+    | { track_no: string; track_com: string }
+    | undefined;
+  if (!o?.track_no || !o.track_com) return;
+  const data = await fetchTrack(o.track_com, o.track_no);
+  db.prepare("UPDATE orders SET track_data=? WHERE id = ?").run(JSON.stringify(data), orderId);
   revalidatePath("/admin/orders");
 }
 

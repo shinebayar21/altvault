@@ -148,6 +148,10 @@ ensureColumn("order_items", "size", "size TEXT NOT NULL DEFAULT ''");
 ensureColumn("order_items", "color", "color TEXT NOT NULL DEFAULT ''");
 // Төлбөрийн платформ: '' (данс) | 'qpay' (шууд) | 'wire'
 ensureColumn("orders", "pay_provider", "pay_provider TEXT NOT NULL DEFAULT ''");
+// Хятад доторх илгээмжийн tracking (Kuaidi100): курьерийн код, дугаар, кэшилсэн явц (JSON)
+ensureColumn("orders", "track_com", "track_com TEXT NOT NULL DEFAULT ''");
+ensureColumn("orders", "track_no", "track_no TEXT NOT NULL DEFAULT ''");
+ensureColumn("orders", "track_data", "track_data TEXT NOT NULL DEFAULT ''");
 
 // ----- анхны өгөгдөл (seed) -----
 const catCount = (db.prepare("SELECT COUNT(*) c FROM categories").get() as { c: number }).c;
@@ -254,6 +258,9 @@ export type Order = {
   qpay_invoice_id: string | null;
   qpay_qr: string | null;
   qpay_url: string | null;
+  track_com: string;
+  track_no: string;
+  track_data: string;
   created_at: string;
 };
 
