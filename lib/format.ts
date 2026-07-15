@@ -49,7 +49,47 @@ export const BANNER_FONTS: Record<string, { label: string; className: string }> 
   elegant: { label: "Гоёмсог сэриф — Playfair", className: "font-elegant" },
   hand: { label: "Гар бичмэл — Caveat", className: "font-hand" },
   mono: { label: "Техно моно", className: "font-mono" },
+  lobster: { label: "Лобстер — Lobster", className: "font-lobster" },
+  russo: { label: "Спорт — Russo One", className: "font-russo" },
+  comfortaa: { label: "Дугуй зөөлөн — Comfortaa", className: "font-comfortaa" },
+  amatic: { label: "Өндөр нарийн — Amatic SC", className: "font-amatic font-bold" },
+  marck: { label: "Каллиграф — Marck Script", className: "font-marck" },
+  neucha: { label: "Чөлөөт гар — Neucha", className: "font-neucha" },
+  oswald: { label: "Нягт өндөр — Oswald", className: "font-oswald" },
+  pixel: { label: "Пиксель тоглоом — Press Start 2P", className: "font-pixel" },
 };
+
+// ----- гарчгийн хэсэгчилсэн загвар (үг/үсэг бүрд өөр фонт, өнгө) -----
+
+/** Нэг хэсэг: t=текст, f=фонт түлхүүр (''=баннерын үндсэн), c=өнгө (''=үндсэн), br=дараа нь мөр таслах */
+export type BannerSegment = { t: string; f: string; c: string; br?: boolean };
+
+/** title_segments JSON баганыг уншина — хүчингүй/хоосон бол null (энгийн title-аа харуулна) */
+export function parseBannerSegments(v: string | null | undefined): BannerSegment[] | null {
+  if (!v) return null;
+  try {
+    const a = JSON.parse(v);
+    if (!Array.isArray(a)) return null;
+    const out: BannerSegment[] = [];
+    for (const s of a) {
+      if (!s || typeof s !== "object" || typeof s.t !== "string" || s.t === "") continue;
+      out.push({
+        t: s.t,
+        f: typeof s.f === "string" && BANNER_FONTS[s.f] ? s.f : "",
+        c: typeof s.c === "string" && /^#[0-9a-fA-F]{6}$/.test(s.c) ? s.c : "",
+        ...(s.br ? { br: true } : {}),
+      });
+    }
+    return out.length ? out : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Хэсгүүдийг энгийн текст болгоно (title баганад давхар хадгалагдана) */
+export function segmentsToText(segs: BannerSegment[]): string {
+  return segs.map((s) => s.t + (s.br ? "\n" : "")).join("");
+}
 
 /**
  * color_images багана — өнгө бүрийн зургуудын JSON объект: {"Хар":["/api/uploads/x.jpg", ...]}

@@ -1,5 +1,18 @@
 import type { Metadata } from "next";
-import { Inter, Unbounded, Playfair_Display, Caveat } from "next/font/google";
+import {
+  Inter,
+  Unbounded,
+  Playfair_Display,
+  Caveat,
+  Lobster,
+  Russo_One,
+  Comfortaa,
+  Amatic_SC,
+  Marck_Script,
+  Neucha,
+  Oswald,
+  Press_Start_2P,
+} from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/components/CartProvider";
 import Header from "@/components/Header";
@@ -7,9 +20,18 @@ import { getSettings } from "@/lib/db";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
 const unbounded = Unbounded({ subsets: ["latin", "cyrillic"], variable: "--font-unbounded" });
-// реклам баннерын текстэд сонгож болох нэмэлт фонтууд
+// реклам баннерын текстэд сонгож болох нэмэлт фонтууд (бүгд кирилл дэмжинэ;
+// фонтын файл нь зөвхөн ашиглагдсан үед л татагддаг тул олон байх нь хоргүй)
 const playfair = Playfair_Display({ subsets: ["latin", "cyrillic"], variable: "--font-playfair" });
 const caveat = Caveat({ subsets: ["latin", "cyrillic"], variable: "--font-caveat" });
+const lobster = Lobster({ weight: "400", subsets: ["latin", "cyrillic"], variable: "--font-lobster-v" });
+const russo = Russo_One({ weight: "400", subsets: ["latin", "cyrillic"], variable: "--font-russo-v" });
+const comfortaa = Comfortaa({ subsets: ["latin", "cyrillic"], variable: "--font-comfortaa-v" });
+const amatic = Amatic_SC({ weight: ["400", "700"], subsets: ["latin", "cyrillic"], variable: "--font-amatic-v" });
+const marck = Marck_Script({ weight: "400", subsets: ["latin", "cyrillic"], variable: "--font-marck-v" });
+const neucha = Neucha({ weight: "400", subsets: ["latin", "cyrillic"], variable: "--font-neucha-v" });
+const oswald = Oswald({ subsets: ["latin", "cyrillic"], variable: "--font-oswald-v" });
+const pressStart = Press_Start_2P({ weight: "400", subsets: ["latin", "cyrillic"], variable: "--font-press-v" });
 
 // Бүх хуудсыг хүсэлтийн үед render хийнэ — static prerender нь build үеийн
 // хоосон seed DB-ээс (KICKS.MN г.м.) хуучин тохиргоог HTML-д шингээдэг байсан
@@ -40,7 +62,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const settings = getSettings();
   const storeName = settings.store_name || "Altvault";
   return (
-    <html lang="mn" className={`${inter.variable} ${unbounded.variable} ${playfair.variable} ${caveat.variable}`}>
+    <html
+      lang="mn"
+      className={`${inter.variable} ${unbounded.variable} ${playfair.variable} ${caveat.variable} ${lobster.variable} ${russo.variable} ${comfortaa.variable} ${amatic.variable} ${marck.variable} ${neucha.variable} ${oswald.variable} ${pressStart.variable}`}
+    >
       <body className="antialiased">
         <CartProvider>
           <Header storeName={storeName} logo={settings.store_logo || ""} />

@@ -148,6 +148,8 @@ ensureColumn("order_items", "size", "size TEXT NOT NULL DEFAULT ''");
 ensureColumn("order_items", "color", "color TEXT NOT NULL DEFAULT ''");
 // Төлбөрийн платформ: '' (данс) | 'qpay' (шууд) | 'wire'
 ensureColumn("orders", "pay_provider", "pay_provider TEXT NOT NULL DEFAULT ''");
+// Баннерын гарчгийн хэсэгчилсэн загвар — үг/үсэг бүрд өөр фонт, өнгө (JSON массив)
+ensureColumn("banners", "title_segments", "title_segments TEXT NOT NULL DEFAULT ''");
 
 // ----- анхны өгөгдөл (seed) -----
 const catCount = (db.prepare("SELECT COUNT(*) c FROM categories").get() as { c: number }).c;
@@ -229,6 +231,7 @@ export type Banner = {
   id: number;
   image: string;
   title: string;
+  title_segments: string;
   subtitle: string;
   font: string;
   color: string;

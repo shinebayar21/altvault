@@ -5,6 +5,15 @@
   --font-display: var(--font-unbounded), var(--font-inter), ui-sans-serif, sans-serif;
   --font-elegant: var(--font-playfair), Georgia, serif;
   --font-hand: var(--font-caveat), cursive;
+  /* реклам баннерын нэмэлт фонтууд */
+  --font-lobster: var(--font-lobster-v), cursive;
+  --font-russo: var(--font-russo-v), sans-serif;
+  --font-comfortaa: var(--font-comfortaa-v), sans-serif;
+  --font-amatic: var(--font-amatic-v), cursive;
+  --font-marck: var(--font-marck-v), cursive;
+  --font-neucha: var(--font-neucha-v), cursive;
+  --font-oswald: var(--font-oswald-v), sans-serif;
+  --font-pixel: var(--font-press-v), monospace;
 }
 
 body {

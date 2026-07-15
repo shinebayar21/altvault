@@ -1,6 +1,7 @@
 import db, { Product } from "@/lib/db";
 import { tugrug, minPriceInfo } from "@/lib/format";
 import ToggleActive from "@/components/ToggleActive";
+import DeleteProduct from "@/components/DeleteProduct";
 import VariantMatrix from "@/components/VariantMatrix";
 import Link from "next/link";
 
@@ -87,6 +88,7 @@ export default async function AdminProducts() {
               >
                 Засах
               </Link>
+              <DeleteProduct id={p.id} name={p.name} />
             </div>
             <div className="mt-2 pl-14 sm:pl-[60px]">
               <VariantMatrix id={p.id} colors={p.colors} sizes={p.sizes} variantsOut={p.variants_out} />

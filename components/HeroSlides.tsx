@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Banner } from "@/lib/db";
-import { BANNER_FONTS, BANNER_POS_X, BANNER_POS_Y } from "@/lib/format";
+import { BANNER_FONTS, BANNER_POS_X, BANNER_POS_Y, parseBannerSegments } from "@/lib/format";
 
 /**
  * Нүүрний hero — реклам зураг + түүн дээрх текст (фонт/өнгө нь админаас)
@@ -45,6 +45,8 @@ export default function HeroSlides({ banners }: { banners: Banner[] }) {
             const font = BANNER_FONTS[b.font] || BANNER_FONTS.display;
             const posX = BANNER_POS_X[b.pos_x] || BANNER_POS_X.left;
             const posY = BANNER_POS_Y[b.pos_y] || BANNER_POS_Y.center;
+            // Хэсэгчилсэн загвартай бол үг/үсэг бүр өөрийн фонт, өнгөтэй гарна
+            const segs = parseBannerSegments(b.title_segments);
             return (
               <div
                 key={b.id}
@@ -62,7 +64,18 @@ export default function HeroSlides({ banners }: { banners: Banner[] }) {
                         fontSize: `clamp(20px, 7vw, ${b.title_size || 48}px)`,
                       }}
                     >
-                      {b.title}
+                      {segs
+                        ? segs.map((s, si) => (
+                            <span
+                              key={si}
+                              className={s.f ? BANNER_FONTS[s.f].className : undefined}
+                              style={s.c ? { color: s.c } : undefined}
+                            >
+                              {s.t}
+                              {s.br ? "\n" : ""}
+                            </span>
+                          ))
+                        : b.title}
                     </h1>
                     {b.subtitle && (
                       <p

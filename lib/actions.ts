@@ -12,6 +12,8 @@ import {
   BANNER_FONTS,
   BANNER_POS_X,
   BANNER_POS_Y,
+  parseBannerSegments,
+  segmentsToText,
 } from "@/lib/format";
 import { makeToken, requireAdmin, AUTH_COOKIE } from "@/lib/auth";
 import { cookies } from "next/headers";
@@ -257,9 +259,18 @@ export async function saveProduct(
   redirect("/admin/products");
 }
 
+/** Барааг бүрмөсөн устгана — зургууд нь цэвэрлэгдэнэ, захиалгын түүх
+ *  (order_items нь product_name-ээ өөртөө хадгалдаг) хэвээр үлдэнэ */
 export async function deleteProduct(id: number) {
   await requireAdmin();
-  db.prepare("UPDATE products SET active = 0 WHERE id = ?").run(id);
+  const p = db.prepare("SELECT image, color_images FROM products WHERE id = ?").get(id) as
+    | { image: string; color_images: string }
+    | undefined;
+  if (!p) return;
+  db.prepare("DELETE FROM products WHERE id = ?").run(id);
+  deleteUploadIfUnused(p.image);
+  for (const imgs of Object.values(parseColorImages(p.color_images)))
+    for (const u of imgs) deleteUploadIfUnused(u);
   revalidatePath("/admin/products");
   revalidatePath("/");
 }
@@ -376,7 +387,10 @@ export async function deleteCategory(formData: FormData) {
 
 // ---------- Реклам (нүүрний слайд) ----------
 function bannerTextFields(formData: FormData) {
-  const title = ((formData.get("title") as string) || "").trim();
+  // Хэсэгчилсэн загвар ирвэл цэвэрлэж хадгална, title-ыг хэсгүүдээс нь гаргана
+  const segs = parseBannerSegments((formData.get("title_segments") as string) || "");
+  const title_segments = segs ? JSON.stringify(segs) : "";
+  const title = segs ? segmentsToText(segs).trim() : ((formData.get("title") as string) || "").trim();
   const subtitle = ((formData.get("subtitle") as string) || "").trim();
   let font = (formData.get("font") as string) || "display";
   if (!BANNER_FONTS[font]) font = "display";
@@ -394,7 +408,7 @@ function bannerTextFields(formData: FormData) {
   if (!BANNER_POS_X[pos_x]) pos_x = "left";
   let pos_y = (formData.get("pos_y") as string) || "center";
   if (!BANNER_POS_Y[pos_y]) pos_y = "center";
-  return { title, subtitle, font, color, subtitle_color, title_size, subtitle_size, pos_x, pos_y };
+  return { title, title_segments, subtitle, font, color, subtitle_color, title_size, subtitle_size, pos_x, pos_y };
 }
 
 export async function addBanner(formData: FormData) {
@@ -406,8 +420,8 @@ export async function addBanner(formData: FormData) {
   if (!image) return;
   const t = bannerTextFields(formData);
   db.prepare(
-    "INSERT INTO banners (image, title, subtitle, font, color, subtitle_color, title_size, subtitle_size, pos_x, pos_y) VALUES (?,?,?,?,?,?,?,?,?,?)"
-  ).run(image, t.title, t.subtitle, t.font, t.color, t.subtitle_color, t.title_size, t.subtitle_size, t.pos_x, t.pos_y);
+    "INSERT INTO banners (image, title, title_segments, subtitle, font, color, subtitle_color, title_size, subtitle_size, pos_x, pos_y) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+  ).run(image, t.title, t.title_segments, t.subtitle, t.font, t.color, t.subtitle_color, t.title_size, t.subtitle_size, t.pos_x, t.pos_y);
   revalidatePath("/");
   revalidatePath("/admin/banners");
 }
@@ -426,12 +440,12 @@ export async function updateBanner(formData: FormData) {
   const t = bannerTextFields(formData);
   if (image) {
     db.prepare(
-      "UPDATE banners SET image=?, title=?, subtitle=?, font=?, color=?, subtitle_color=?, title_size=?, subtitle_size=?, pos_x=?, pos_y=? WHERE id=?"
-    ).run(image, t.title, t.subtitle, t.font, t.color, t.subtitle_color, t.title_size, t.subtitle_size, t.pos_x, t.pos_y, id);
+      "UPDATE banners SET image=?, title=?, title_segments=?, subtitle=?, font=?, color=?, subtitle_color=?, title_size=?, subtitle_size=?, pos_x=?, pos_y=? WHERE id=?"
+    ).run(image, t.title, t.title_segments, t.subtitle, t.font, t.color, t.subtitle_color, t.title_size, t.subtitle_size, t.pos_x, t.pos_y, id);
   } else {
     db.prepare(
-      "UPDATE banners SET title=?, subtitle=?, font=?, color=?, subtitle_color=?, title_size=?, subtitle_size=?, pos_x=?, pos_y=? WHERE id=?"
-    ).run(t.title, t.subtitle, t.font, t.color, t.subtitle_color, t.title_size, t.subtitle_size, t.pos_x, t.pos_y, id);
+      "UPDATE banners SET title=?, title_segments=?, subtitle=?, font=?, color=?, subtitle_color=?, title_size=?, subtitle_size=?, pos_x=?, pos_y=? WHERE id=?"
+    ).run(t.title, t.title_segments, t.subtitle, t.font, t.color, t.subtitle_color, t.title_size, t.subtitle_size, t.pos_x, t.pos_y, id);
   }
   if (image) deleteUploadIfUnused(prevBanner?.image);
   revalidatePath("/");
