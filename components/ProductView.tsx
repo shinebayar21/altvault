@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { Product } from "@/lib/db";
 import { tugrug, parseColorImages, priceInfo, minPriceInfo } from "@/lib/format";
 import AddToCart from "./AddToCart";
@@ -12,8 +12,16 @@ export default function ProductView({ p }: { p: Product }) {
   // өнгө ЖИНХЭНЭ өөрчлөгдсөн үед л индекс 0 руу буцна, давхар дуудлагад үл хөдөлнө
   const [sel, setSel] = useState<{ color: string; idx: number }>({ color: "", idx: 0 });
   // Тогтвортой callback — AddToCart-ийн useEffect-ийг дахин ажиллуулж индексийг алдагдуулахгүй
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const prevColor = useRef<string | null>(null);
   const setColor = useCallback((c: string) => {
     setSel((s) => (s.color === c ? s : { color: c, idx: 0 }));
+    // Хэрэглэгч өнгө СОЛИХОД зураг дэлгэцээс гадуур бол түүн рүү гүйлгэнэ
+    // (анхны автомат сонголтод гүйлгэхгүй; харагдаж байвал "nearest" тул no-op)
+    const prev = prevColor.current;
+    prevColor.current = c;
+    if (prev === null || prev === c) return;
+    galleryRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, []);
 
   const imgs = sel.color && colorImages[sel.color]?.length ? colorImages[sel.color] : [p.image];
@@ -24,7 +32,7 @@ export default function ProductView({ p }: { p: Product }) {
 
   return (
     <div className="mt-4 grid gap-8 rounded-3xl border border-zinc-800 bg-zinc-900 p-6 md:grid-cols-2 md:p-8">
-      <div>
+      <div ref={galleryRef} className="scroll-mt-20">
         <div
           className="relative cursor-zoom-in overflow-hidden rounded-2xl"
           onMouseMove={(e) => {

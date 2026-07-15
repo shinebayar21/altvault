@@ -35,7 +35,7 @@ export default function ProductCard({ p }: { p: Product }) {
           </span>
         )}
         {p.category_name && (
-          <span className="absolute top-2.5 right-2.5 rounded-full bg-zinc-950/80 px-2.5 py-1 text-[11px] font-semibold text-zinc-300 backdrop-blur-sm">
+          <span className="absolute bottom-2.5 right-2.5 rounded-full bg-zinc-950/80 px-2.5 py-1 text-[11px] font-semibold text-zinc-300 backdrop-blur-sm">
             {p.category_name}
           </span>
         )}
