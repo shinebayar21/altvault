@@ -45,7 +45,6 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
             {STATUS_LABEL[order.status]}
           </span>
         </div>
-        <div className="mt-1 text-sm text-zinc-500">{order.created_at}</div>
 
         <div className="mt-5 divide-y divide-zinc-800 border-y border-zinc-800">
           {items.map((i) => (
@@ -132,9 +131,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
                     </tr>
                     <tr>
                       <td className="py-1 text-zinc-500">Гүйлгээний утга:</td>
-                      <td className="font-bold text-orange-400">
-                        {order.code} {order.phone}
-                      </td>
+                      <td className="font-bold text-orange-400">{order.code}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -153,9 +150,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
           </div>
         )}
 
-        <div className="mt-5 text-sm text-zinc-500">
-          Холбоо барих: {s.phone} · Хүргэлтийн хаяг: {order.address}
-        </div>
+        <div className="mt-5 text-sm text-zinc-500">Холбоо барих: {s.phone}</div>
       </div>
       <div className="mt-4 text-center">
         <Link href="/" className="text-sm text-lime-400 hover:underline">

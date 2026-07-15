@@ -1,4 +1,4 @@
-import db, { Order } from "@/lib/db";
+import db, { Order, OrderItem } from "@/lib/db";
 import { tugrug, STATUS_LABEL, STATUS_COLOR } from "@/lib/format";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -23,6 +23,8 @@ export default async function OrdersByPhone({ params }: { params: Promise<{ phon
 
   // Ганц захиалга олдвол шууд дэлгэрэнгүй рүү нь
   if (orders.length === 1) redirect(`/order/${orders[0].code}`);
+
+  const itemsStmt = db.prepare("SELECT * FROM order_items WHERE order_id = ?");
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -50,7 +52,11 @@ export default async function OrdersByPhone({ params }: { params: Promise<{ phon
             >
               <div className="min-w-0 flex-1">
                 <div className="font-display font-bold text-lime-400">{o.code}</div>
-                <div className="mt-0.5 text-xs text-zinc-500">{o.created_at}</div>
+                <div className="mt-0.5 truncate text-xs text-zinc-500">
+                  {(itemsStmt.all(o.id) as OrderItem[])
+                    .map((i) => `${i.product_name}×${i.qty}`)
+                    .join(", ")}
+                </div>
               </div>
               <div className="text-sm font-semibold">{tugrug(o.total)}</div>
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_COLOR[o.status]}`}>

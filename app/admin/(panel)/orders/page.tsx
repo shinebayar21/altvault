@@ -2,7 +2,6 @@ import db, { Order, OrderItem } from "@/lib/db";
 import { tugrug, STATUS_LABEL, STATUS_COLOR } from "@/lib/format";
 import { setOrderStatus } from "@/lib/actions";
 import OrderStatusSelect from "@/components/OrderStatusSelect";
-import OrderTrack from "@/components/OrderTrack";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -198,7 +197,6 @@ export default async function AdminOrders({
                   )}
                   <OrderStatusSelect orderId={o.id} status={o.status} />
                 </div>
-                <OrderTrack order={o} />
               </div>
             );
           })}
