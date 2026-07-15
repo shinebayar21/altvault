@@ -6,6 +6,7 @@ import {
   allCombos,
   parseVariantsOut,
   parseColorImages,
+  variantKey,
   MAX_COLOR_IMAGES,
   type ColorPrice,
   BANNER_FONTS,
@@ -182,11 +183,17 @@ export async function saveProduct(
   // жагсаалтаас хасагдсан өнгөнийх автоматаар цэвэрлэгдэнэ
   const colorList = splitList(colors);
   const prevColorImages = parseColorImages(prev?.color_images);
+  // Нэр солигдсон өнгө: form-оос colororig:<шинэ нэр> = хуучин нэр ирдэг —
+  // зураг, дууссан-төлөвийг хуучин нэрээс нь дагуулна
+  const origOf = (c: string) => {
+    const o = formData.get(`colororig:${c}`);
+    return typeof o === "string" && o ? o : c;
+  };
   const colorImages: Record<string, string[]> = {};
   for (const c of colorList) {
     const slots: (string | null)[] = Array.from(
       { length: MAX_COLOR_IMAGES },
-      (_, i) => prevColorImages[c]?.[i] ?? null
+      (_, i) => prevColorImages[origOf(c)]?.[i] ?? null
     );
     for (let i = 0; i < MAX_COLOR_IMAGES; i++) {
       if (formData.get(`colorimgdel:${c}:${i}`) && slots[i]) {
@@ -209,16 +216,26 @@ export async function saveProduct(
     if (imgs.length) colorImages[c] = imgs;
   }
   // Жагсаалтаас хасагдсан өнгөний зургууд мөн хэрэггүй боллоо
+  const keptOrig = new Set(colorList.map(origOf));
   for (const [c, imgs] of Object.entries(prevColorImages)) {
-    if (!colorList.includes(c)) removedUploads.push(...imgs);
+    if (!keptOrig.has(c)) removedUploads.push(...imgs);
   }
   const color_images = JSON.stringify(colorImages);
 
   if (id) {
-    // Өнгө/размерын жагсаалт өөрчлөгдвөл хүчингүй болсон хослолуудыг цэвэрлэнэ
+    // Өнгө/размерын жагсаалт өөрчлөгдвөл хүчингүй болсон хослолуудыг цэвэрлэнэ;
+    // нэр солигдсон өнгөний "дууссан" хослолуудыг шинэ нэр рүү нь шилжүүлнэ
+    const renamed = new Map(colorList.map((c) => [origOf(c), c] as const));
     const valid = new Set(allCombos(colorList, splitList(sizes)));
     const variants_out = JSON.stringify(
-      [...parseVariantsOut(prev?.variants_out)].filter((k) => valid.has(k))
+      [...parseVariantsOut(prev?.variants_out)]
+        .map((k) => {
+          const i = k.indexOf("|");
+          if (i < 0) return k;
+          const nc = renamed.get(k.slice(0, i));
+          return nc ? variantKey(nc, k.slice(i + 1)) : k;
+        })
+        .filter((k) => valid.has(k))
     );
     if (image) {
       db.prepare(

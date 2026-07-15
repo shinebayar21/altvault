@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { saveProduct } from "@/lib/actions";
 import type { Product, Category } from "@/lib/db";
 import { splitList, parseColorImages, parseColorPrices, MAX_COLOR_IMAGES } from "@/lib/format";
@@ -17,10 +17,33 @@ export default function ProductForm({
 }) {
   const [state, action, pending] = useActionState<{ error?: string }, FormData>(saveProduct, {});
   const [sizes, setSizes] = useState<string[]>(splitList(product?.sizes));
-  const [colors, setColors] = useState(product?.colors || "");
-  const colorList = splitList(colors);
+  // Өнгөнүүд — нэг нэгээр нэмдэг жагсаалт; orig = DB дахь хуучин нэр
+  // (нэр солиход зураг/үнэ/дууссан-төлөвийг сервер талд дагуулахад ашиглана)
+  const uidRef = useRef(0);
+  const [colorItems, setColorItems] = useState<{ key: string; name: string; orig: string }[]>(() =>
+    splitList(product?.colors).map((c) => ({ key: `db:${c}`, name: c, orig: c }))
+  );
+  const [newColor, setNewColor] = useState("");
+  const [editKey, setEditKey] = useState<string | null>(null);
+  const [editVal, setEditVal] = useState("");
   const colorImages = parseColorImages(product?.color_images);
   const colorPrices = parseColorPrices(product?.color_prices);
+
+  // Таслал нь жагсаалтын тусгаарлагч тул өнгөний нэрэнд орохгүй
+  const cleanColor = (v: string) => v.replace(/,/g, "").trim();
+  const addColor = () => {
+    const v = cleanColor(newColor);
+    if (!v || colorItems.some((it) => it.name === v)) return;
+    setColorItems((prev) => [...prev, { key: `new:${uidRef.current++}`, name: v, orig: "" }]);
+    setNewColor("");
+  };
+  const renameColor = (key: string) => {
+    const v = cleanColor(editVal);
+    if (!v || colorItems.some((it) => it.key !== key && it.name === v)) return;
+    setColorItems((prev) => prev.map((it) => (it.key === key ? { ...it, name: v } : it)));
+    setEditKey(null);
+  };
+  const removeColor = (key: string) => setColorItems((prev) => prev.filter((it) => it.key !== key));
   const input =
     "w-full rounded-xl border border-zinc-700 bg-zinc-950 px-4 py-2.5 text-zinc-100 placeholder-zinc-600 transition focus:border-lime-400 focus:outline-none";
   // Тоон талбар дээр хулгана байхад хуудас гүйлгэхэд browser утгыг өөрчилдгөөс сэргийлнэ
@@ -35,6 +58,12 @@ export default function ProductForm({
     <form action={action} className="max-w-xl space-y-4">
       {product && <input type="hidden" name="id" value={product.id} />}
       <input type="hidden" name="sizes" value={sizes.join(",")} />
+      <input type="hidden" name="colors" value={colorItems.map((it) => it.name).join(",")} />
+      {colorItems
+        .filter((it) => it.orig && it.orig !== it.name)
+        .map((it) => (
+          <input key={it.key} type="hidden" name={`colororig:${it.name}`} value={it.orig} />
+        ))}
       <div className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
         <div>
           <label className="mb-1 block text-sm font-medium text-zinc-300">Барааны нэр *</label>
@@ -93,25 +122,112 @@ export default function ProductForm({
 
         <div>
           <label className="mb-1 block text-sm font-medium text-zinc-300">Өнгө</label>
-          <input
-            name="colors"
-            value={colors}
-            onChange={(e) => setColors(e.target.value)}
-            placeholder="Жишээ: Хар, Цагаан, Volt"
-            className={input}
-          />
-          <p className="mt-1.5 text-xs text-zinc-500">Өнгөнүүдийг таслалаар тусгаарлан бичнэ үү</p>
+          <div className="flex gap-2">
+            <input
+              value={newColor}
+              onChange={(e) => setNewColor(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addColor();
+                }
+              }}
+              placeholder="Жишээ: Хар"
+              className={input}
+            />
+            <button
+              type="button"
+              onClick={addColor}
+              className="shrink-0 rounded-xl border border-lime-400/50 px-4 text-sm font-bold text-lime-400 transition hover:bg-lime-400 hover:text-zinc-950"
+            >
+              + Нэмэх
+            </button>
+          </div>
+          {colorItems.length > 0 && (
+            <ul className="mt-2 space-y-1.5">
+              {colorItems.map((it) => (
+                <li
+                  key={it.key}
+                  className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2"
+                >
+                  {editKey === it.key ? (
+                    <>
+                      <input
+                        autoFocus
+                        value={editVal}
+                        onChange={(e) => setEditVal(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            renameColor(it.key);
+                          }
+                          if (e.key === "Escape") setEditKey(null);
+                        }}
+                        className="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-sm text-zinc-100 focus:border-lime-400 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => renameColor(it.key)}
+                        className="shrink-0 text-sm font-bold text-lime-400 hover:text-lime-300"
+                      >
+                        OK
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditKey(null)}
+                        className="shrink-0 text-sm text-zinc-500 hover:text-zinc-300"
+                      >
+                        Болих
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-zinc-200">
+                        {it.name}
+                      </span>
+                      <button
+                        type="button"
+                        title="Нэр солих"
+                        onClick={() => {
+                          setEditKey(it.key);
+                          setEditVal(it.name);
+                        }}
+                        className="shrink-0 text-sm text-zinc-400 transition hover:text-lime-400"
+                      >
+                        ✎
+                      </button>
+                      <button
+                        type="button"
+                        title="Устгах"
+                        onClick={() => removeColor(it.key)}
+                        className="shrink-0 text-sm text-zinc-400 transition hover:text-red-400"
+                      >
+                        ✕
+                      </button>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-1.5 text-xs text-zinc-500">
+            Өнгө бичээд «Нэмэх» (Enter) дарж нэг нэгээр нэмнэ. ✎ — нэр солих (зураг, үнэ нь
+            хадгалагдана), ✕ — устгах. Өөрчлөлт «Хадгалах» дарахад орно.
+          </p>
         </div>
 
-        {colorList.length > 0 && (
+        {colorItems.length > 0 && (
           <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-3.5">
             <div className="text-sm font-medium text-zinc-300">
               Өнгө бүрийн үнэ ба зураг — зураг {MAX_COLOR_IMAGES} хүртэл (заавал биш)
             </div>
-            {colorList.map((c) => {
-              const imgs = colorImages[c] || [];
+            {colorItems.map((it) => {
+              const c = it.name;
+              // DB дахь зураг/үнэ хуучин нэрээр нь хадгалагдсан байгаа
+              const src = it.orig || it.name;
+              const imgs = colorImages[src] || [];
               return (
-                <div key={c} className="rounded-lg border border-zinc-800 p-2.5">
+                <div key={it.key} className="rounded-lg border border-zinc-800 p-2.5">
                   <div className="mb-2 text-sm font-semibold text-zinc-200">{c}</div>
                   <div className="mb-2.5 grid gap-2 sm:grid-cols-2">
                     <div>
@@ -121,7 +237,7 @@ export default function ProductForm({
                         type="number"
                         min="0"
                         placeholder={String(product?.price ?? "")}
-                        defaultValue={colorPrices[c]?.price ?? ""}
+                        defaultValue={colorPrices[src]?.price ?? ""}
                         onWheel={noWheel}
                         className={input}
                       />
@@ -133,7 +249,7 @@ export default function ProductForm({
                         type="number"
                         min="0"
                         placeholder="Хоосон = хямдралгүй"
-                        defaultValue={colorPrices[c]?.sale ?? ""}
+                        defaultValue={colorPrices[src]?.sale ?? ""}
                         onWheel={noWheel}
                         className={input}
                       />
