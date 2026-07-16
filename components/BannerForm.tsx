@@ -123,7 +123,7 @@ export default function BannerForm({ banner }: { banner?: Banner }) {
           </div>
           {subtitle && (
             <div
-              className="mt-1.5"
+              className={`${fontDef.className} mt-1.5`}
               style={{ color: subtitleColor, opacity: 0.85, fontSize: subtitleSize * SCALE }}
             >
               {subtitle}

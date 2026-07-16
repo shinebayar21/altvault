@@ -61,7 +61,7 @@ export default function HeroSlides({ banners }: { banners: Banner[] }) {
                       className={`${font.className} max-w-2xl whitespace-pre-line font-extrabold leading-tight`}
                       style={{
                         color: b.color || "#ffffff",
-                        fontSize: `clamp(20px, 7vw, ${b.title_size || 48}px)`,
+                        fontSize: `clamp(20px, ${((b.title_size || 48) / 12.8).toFixed(2)}vw, ${b.title_size || 48}px)`,
                       }}
                     >
                       {segs
@@ -79,11 +79,11 @@ export default function HeroSlides({ banners }: { banners: Banner[] }) {
                     </h1>
                     {b.subtitle && (
                       <p
-                        className="mt-4 max-w-md"
+                        className={`${font.className} mt-4 max-w-md`}
                         style={{
                           color: b.subtitle_color || "#ffffff",
                           opacity: 0.85,
-                          fontSize: `clamp(12px, 3.5vw, ${b.subtitle_size || 18}px)`,
+                          fontSize: `clamp(12px, ${((b.subtitle_size || 18) / 12.8).toFixed(2)}vw, ${b.subtitle_size || 18}px)`,
                         }}
                       >
                         {b.subtitle}
