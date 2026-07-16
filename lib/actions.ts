@@ -226,16 +226,24 @@ export async function saveProduct(
 
   if (id) {
     // Өнгө/размерын жагсаалт өөрчлөгдвөл хүчингүй болсон хослолуудыг цэвэрлэнэ;
-    // нэр солигдсон өнгөний "дууссан" хослолуудыг шинэ нэр рүү нь шилжүүлнэ
+    // нэр солигдсон өнгө/размерын "дууссан" хослолуудыг шинэ нэр рүү нь шилжүүлнэ
+    // (размерын хуучин нэр form-оос sizeorig:<шинэ нэр> талбараар ирдэг)
+    const sizeList = splitList(sizes);
+    const sizeOrigOf = (s: string) => {
+      const o = formData.get(`sizeorig:${s}`);
+      return typeof o === "string" && o ? o : s;
+    };
     const renamed = new Map(colorList.map((c) => [origOf(c), c] as const));
-    const valid = new Set(allCombos(colorList, splitList(sizes)));
+    const renamedSizes = new Map(sizeList.map((s) => [sizeOrigOf(s), s] as const));
+    const valid = new Set(allCombos(colorList, sizeList));
     const variants_out = JSON.stringify(
       [...parseVariantsOut(prev?.variants_out)]
         .map((k) => {
           const i = k.indexOf("|");
           if (i < 0) return k;
-          const nc = renamed.get(k.slice(0, i));
-          return nc ? variantKey(nc, k.slice(i + 1)) : k;
+          const c = k.slice(0, i);
+          const s = k.slice(i + 1);
+          return variantKey(renamed.get(c) ?? c, renamedSizes.get(s) ?? s);
         })
         .filter((k) => valid.has(k))
     );

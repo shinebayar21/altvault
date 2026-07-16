@@ -17,10 +17,17 @@ export default function ProductForm({
   categories: Category[];
 }) {
   const [state, action, pending] = useActionState<{ error?: string }, FormData>(saveProduct, {});
-  const [sizes, setSizes] = useState<string[]>(splitList(product?.sizes));
   // Өнгөнүүд — нэг нэгээр нэмдэг жагсаалт; orig = DB дахь хуучин нэр
   // (нэр солиход зураг/үнэ/дууссан-төлөвийг сервер талд дагуулахад ашиглана)
   const uidRef = useRef(0);
+  // Размерууд — өнгөтэй адил нэмэх/засах/хасах жагсаалт; orig нь нэр солиход
+  // "дууссан" хослолын төлөвийг сервер талд дагуулна
+  const [sizeItems, setSizeItems] = useState<{ key: string; name: string; orig: string }[]>(() =>
+    splitList(product?.sizes).map((s) => ({ key: `db:${s}`, name: s, orig: s }))
+  );
+  const [newSize, setNewSize] = useState("");
+  const [sizeEditKey, setSizeEditKey] = useState<string | null>(null);
+  const [sizeEditVal, setSizeEditVal] = useState("");
   const [colorItems, setColorItems] = useState<{ key: string; name: string; orig: string }[]>(() =>
     splitList(product?.colors).map((c) => ({ key: `db:${c}`, name: c, orig: c }))
   );
@@ -61,20 +68,48 @@ export default function ProductForm({
   // Тоон талбар дээр хулгана байхад хуудас гүйлгэхэд browser утгыг өөрчилдгөөс сэргийлнэ
   const noWheel = (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur();
 
-  const toggleSize = (s: string) =>
-    setSizes((prev) =>
-      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s].sort((a, b) => Number(a) - Number(b))
+  // Таслал нь жагсаалтын, | нь өнгө×размер хослолын тусгаарлагч тул размерын нэрэнд орохгүй
+  const cleanSize = (v: string) => v.replace(/[,|]/g, "").trim();
+  const sizeNum = (s: string) => {
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n : Infinity;
+  };
+  const sortSizes = (arr: { key: string; name: string; orig: string }[]) =>
+    [...arr].sort((a, b) => sizeNum(a.name) - sizeNum(b.name) || a.name.localeCompare(b.name));
+  const addSize = (v0?: string) => {
+    const v = cleanSize(v0 ?? newSize);
+    if (!v || sizeItems.some((it) => it.name === v)) return;
+    setSizeItems((prev) => sortSizes([...prev, { key: `new:${uidRef.current++}`, name: v, orig: "" }]));
+    setNewSize("");
+  };
+  const toggleQuickSize = (s: string) =>
+    setSizeItems((prev) =>
+      prev.some((it) => it.name === s)
+        ? prev.filter((it) => it.name !== s)
+        : sortSizes([...prev, { key: `new:${uidRef.current++}`, name: s, orig: "" }])
     );
+  const renameSize = (key: string) => {
+    const v = cleanSize(sizeEditVal);
+    if (!v || sizeItems.some((it) => it.key !== key && it.name === v)) return;
+    setSizeItems((prev) => sortSizes(prev.map((it) => (it.key === key ? { ...it, name: v } : it))));
+    setSizeEditKey(null);
+  };
+  const removeSize = (key: string) => setSizeItems((prev) => prev.filter((it) => it.key !== key));
 
   return (
     <form action={action} className="max-w-xl space-y-4">
       {product && <input type="hidden" name="id" value={product.id} />}
-      <input type="hidden" name="sizes" value={sizes.join(",")} />
+      <input type="hidden" name="sizes" value={sizeItems.map((it) => it.name).join(",")} />
       <input type="hidden" name="colors" value={colorItems.map((it) => it.name).join(",")} />
       {colorItems
         .filter((it) => it.orig && it.orig !== it.name)
         .map((it) => (
           <input key={it.key} type="hidden" name={`colororig:${it.name}`} value={it.orig} />
+        ))}
+      {sizeItems
+        .filter((it) => it.orig && it.orig !== it.name)
+        .map((it) => (
+          <input key={it.key} type="hidden" name={`sizeorig:${it.name}`} value={it.orig} />
         ))}
       <div className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
         <div>
@@ -116,9 +151,9 @@ export default function ProductForm({
               <button
                 key={s}
                 type="button"
-                onClick={() => toggleSize(s)}
+                onClick={() => toggleQuickSize(s)}
                 className={`h-9 w-10 rounded-lg border text-sm font-bold transition ${
-                  sizes.includes(s)
+                  sizeItems.some((it) => it.name === s)
                     ? "border-lime-400 bg-lime-400 text-zinc-950"
                     : "border-zinc-700 bg-zinc-950 text-zinc-300 hover:border-zinc-500"
                 }`}
@@ -127,8 +162,96 @@ export default function ProductForm({
               </button>
             ))}
           </div>
+          <div className="mt-2 flex gap-2">
+            <input
+              value={newSize}
+              onChange={(e) => setNewSize(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addSize();
+                }
+              }}
+              placeholder="Өөр размер: 34, 47, 42.5..."
+              className={input}
+            />
+            <button
+              type="button"
+              onClick={() => addSize()}
+              className="shrink-0 rounded-xl border border-lime-400/50 px-4 text-sm font-bold text-lime-400 transition hover:bg-lime-400 hover:text-zinc-950"
+            >
+              + Нэмэх
+            </button>
+          </div>
+          {sizeItems.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {sizeItems.map((it) =>
+                sizeEditKey === it.key ? (
+                  <span
+                    key={it.key}
+                    className="flex items-center gap-1.5 rounded-lg border border-lime-400/60 bg-zinc-950 px-2 py-1"
+                  >
+                    <input
+                      autoFocus
+                      value={sizeEditVal}
+                      onChange={(e) => setSizeEditVal(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          renameSize(it.key);
+                        }
+                        if (e.key === "Escape") setSizeEditKey(null);
+                      }}
+                      className="w-16 rounded border border-zinc-700 bg-zinc-900 px-1.5 py-0.5 text-sm text-zinc-100 focus:border-lime-400 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => renameSize(it.key)}
+                      className="text-sm font-bold text-lime-400 hover:text-lime-300"
+                    >
+                      OK
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSizeEditKey(null)}
+                      className="text-sm text-zinc-500 hover:text-zinc-300"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ) : (
+                  <span
+                    key={it.key}
+                    className="flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-950 px-2 py-1 text-sm font-semibold text-zinc-200"
+                  >
+                    {it.name}
+                    <button
+                      type="button"
+                      title="Размер солих (дууссан төлөв хадгалагдана)"
+                      onClick={() => {
+                        setSizeEditKey(it.key);
+                        setSizeEditVal(it.name);
+                      }}
+                      className="text-zinc-400 transition hover:text-lime-400"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      type="button"
+                      title="Устгах"
+                      onClick={() => removeSize(it.key)}
+                      className="text-zinc-400 transition hover:text-red-400"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )
+              )}
+            </div>
+          )}
           <p className="mt-1.5 text-xs text-zinc-500">
-            Сонгогдсон: {sizes.length > 0 ? sizes.join(", ") : "байхгүй (размергүй бараа)"}
+            Дээрх товчоор түгээмэл размер нэмж/хасна, талбараар дурын размер (34, 47, 42.5 г.м.)
+            нэмнэ. ✎ — солих, ✕ — хасах. Хоосон бол размергүй бараа.
           </p>
         </div>
 
