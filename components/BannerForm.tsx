@@ -11,6 +11,7 @@ import {
   segmentsToText,
   type BannerSegment,
 } from "@/lib/format";
+import { shrinkInputImages } from "@/lib/image";
 import type { Banner } from "@/lib/db";
 
 const POS_CELLS: { x: string; y: string; icon: string }[] = [
@@ -137,8 +138,10 @@ export default function BannerForm({ banner }: { banner?: Banner }) {
         type="file"
         accept="image/*"
         required={!banner}
-        onChange={(e) => {
-          const f = e.target.files?.[0];
+        onChange={async (e) => {
+          const el = e.currentTarget;
+          await shrinkInputImages(el);
+          const f = el.files?.[0];
           if (f) setPreview(URL.createObjectURL(f));
         }}
         className={input}

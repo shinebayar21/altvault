@@ -4,6 +4,7 @@ import { useActionState, useRef, useState } from "react";
 import { saveProduct } from "@/lib/actions";
 import type { Product, Category } from "@/lib/db";
 import { splitList, parseColorImages, parseColorPrices, MAX_COLOR_IMAGES } from "@/lib/format";
+import { shrinkInputImages } from "@/lib/image";
 import Link from "next/link";
 
 const QUICK_SIZES = ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46"];
@@ -26,6 +27,17 @@ export default function ProductForm({
   const [newColor, setNewColor] = useState("");
   const [editKey, setEditKey] = useState<string | null>(null);
   const [editVal, setEditVal] = useState("");
+  // Том зургийг сонгомогц браузер дээр багасгана; дуустал хадгалахыг түгжинэ
+  const [shrinking, setShrinking] = useState(0);
+  const shrinkOnChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const el = e.currentTarget;
+    setShrinking((n) => n + 1);
+    try {
+      await shrinkInputImages(el);
+    } finally {
+      setShrinking((n) => n - 1);
+    }
+  };
   const colorImages = parseColorImages(product?.color_images);
   const colorPrices = parseColorPrices(product?.color_prices);
 
@@ -274,6 +286,7 @@ export default function ProductForm({
                           name={`colorimg:${c}:${i}`}
                           type="file"
                           accept="image/*"
+                          onChange={shrinkOnChange}
                           className={`min-w-0 flex-1 text-xs ${input}`}
                         />
                         {imgs[i] && (
@@ -317,7 +330,7 @@ export default function ProductForm({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={product.image} alt="" className="mb-2 h-20 w-20 rounded-xl bg-zinc-800 object-cover" />
           )}
-          <input name="image" type="file" accept="image/*" className={input} />
+          <input name="image" type="file" accept="image/*" onChange={shrinkOnChange} className={input} />
         </div>
         <label className="flex cursor-pointer items-center gap-2.5 text-sm text-zinc-300">
           <input
@@ -338,10 +351,10 @@ export default function ProductForm({
 
       <div className="flex gap-3">
         <button
-          disabled={pending}
+          disabled={pending || shrinking > 0}
           className="rounded-xl bg-lime-400 px-8 py-2.5 font-bold uppercase tracking-wide text-zinc-950 transition hover:bg-lime-300 disabled:opacity-50"
         >
-          {pending ? "Хадгалж байна..." : "Хадгалах"}
+          {shrinking > 0 ? "Зураг бэлдэж байна..." : pending ? "Хадгалж байна..." : "Хадгалах"}
         </button>
         <Link
           href="/admin/products"
