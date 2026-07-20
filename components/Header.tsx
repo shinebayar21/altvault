@@ -40,6 +40,13 @@ export default function Header({ storeName, logo }: { storeName: string; logo?: 
             Захиалга<span className="hidden sm:inline"> шалгах</span>
           </Link>
           <Link
+            href="/faq"
+            className="rounded-lg px-2 py-2 font-medium text-zinc-300 transition hover:bg-zinc-900 hover:text-lime-400 sm:px-3"
+          >
+            <span className="sm:hidden">FAQ</span>
+            <span className="hidden sm:inline">Түгээмэл асуулт</span>
+          </Link>
+          <Link
             href="/cart"
             className="relative ml-1 rounded-xl bg-lime-400 px-3 py-2 font-bold text-zinc-950 transition hover:bg-lime-300 sm:px-4"
           >

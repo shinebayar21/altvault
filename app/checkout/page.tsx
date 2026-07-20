@@ -32,8 +32,17 @@ export default function CheckoutPage() {
       </div>
     );
 
+  // Утас: зөвхөн яг 8 оронтой тоо хүчинтэй (зай/зураас зэргийг тооцохгүй)
+  const phoneDigits = form.phone.replace(/\D/g, "");
+  const phoneValid = /^\d{8}$/.test(phoneDigits) && form.phone.replace(/[\d\s\-+]/g, "") === "";
+  const phoneError = form.phone.trim() !== "" && !phoneValid;
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!phoneValid) {
+      setError("Таны утасны дугаар буруу байна — 8 оронтой тоо оруулна уу");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -66,6 +75,13 @@ export default function CheckoutPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="font-display mb-6 text-2xl font-extrabold uppercase">Захиалга өгөх</h1>
+      <div className="mb-5 flex items-start gap-3 rounded-2xl border border-sky-400/30 bg-sky-400/10 p-4 text-sm text-sky-300">
+        <span className="text-lg leading-none">🚚</span>
+        <span>
+          Таны захиалсан бараа <b className="text-sky-200">6-8 хоногийн дотор</b> таны гар дээр
+          хүргэгдэх болно.
+        </span>
+      </div>
       <form onSubmit={submit} className="space-y-4">
         <div className={`${card} space-y-4`}>
           <div>
@@ -82,10 +98,18 @@ export default function CheckoutPage() {
             <input
               required
               type="tel"
-              className={input}
+              inputMode="numeric"
+              maxLength={12}
+              placeholder="99112233"
+              className={`${input} ${phoneError ? "border-red-500/60 focus:border-red-500" : ""}`}
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
             />
+            {phoneError && (
+              <p className="mt-1 text-xs text-red-400">
+                Таны утасны дугаар буруу байна — 8 оронтой тоо оруулна уу
+              </p>
+            )}
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-zinc-300">Хүргэлтийн хаяг *</label>
@@ -113,22 +137,6 @@ export default function CheckoutPage() {
           </div>
           <label
             className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3.5 transition ${
-              form.payment_method === "bank"
-                ? "border-lime-400 bg-lime-400/10"
-                : "border-zinc-700 hover:border-zinc-500"
-            }`}
-          >
-            <input
-              type="radio"
-              name="pm"
-              className="accent-lime-400"
-              checked={form.payment_method === "bank"}
-              onChange={() => setForm({ ...form, payment_method: "bank" })}
-            />
-            <span>🏦 Дансаар шилжүүлэх</span>
-          </label>
-          <label
-            className={`mt-2 flex cursor-pointer items-center gap-3 rounded-xl border p-3.5 transition ${
               form.payment_method === "qpay"
                 ? "border-lime-400 bg-lime-400/10"
                 : "border-zinc-700 hover:border-zinc-500"
@@ -142,6 +150,22 @@ export default function CheckoutPage() {
               onChange={() => setForm({ ...form, payment_method: "qpay" })}
             />
             <span>📱 QPay</span>
+          </label>
+          <label
+            className={`mt-2 flex cursor-pointer items-center gap-3 rounded-xl border p-3.5 transition ${
+              form.payment_method === "bank"
+                ? "border-lime-400 bg-lime-400/10"
+                : "border-zinc-700 hover:border-zinc-500"
+            }`}
+          >
+            <input
+              type="radio"
+              name="pm"
+              className="accent-lime-400"
+              checked={form.payment_method === "bank"}
+              onChange={() => setForm({ ...form, payment_method: "bank" })}
+            />
+            <span>🏦 Дансаар шилжүүлэх</span>
           </label>
         </div>
 

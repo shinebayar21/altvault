@@ -50,7 +50,11 @@ export default async function AdminOrders({
     const s = p.toString();
     return s ? `/admin/orders?${s}` : "/admin/orders";
   };
-  const itemsStmt = db.prepare("SELECT * FROM order_items WHERE order_id = ?");
+  // Барааны зургийг хамт авна (бараа устсан бол NULL — зураггүй харагдана)
+  const itemsStmt = db.prepare(
+    `SELECT oi.*, p.image AS product_image FROM order_items oi
+     LEFT JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?`
+  );
 
   const tabs = [
     { key: "", label: "Бүгд" },
@@ -60,11 +64,6 @@ export default async function AdminOrders({
     { key: "delivered", label: "Хүргэгдсэн" },
     { key: "cancelled", label: "Цуцлагдсан" },
   ];
-
-  const itemLabel = (i: OrderItem) => {
-    const opts = [i.size && `${i.size}`, i.color].filter(Boolean).join("/");
-    return `${i.product_name}${opts ? ` [${opts}]` : ""}×${i.qty}`;
-  };
 
   return (
     <div>
@@ -136,7 +135,7 @@ export default async function AdminOrders({
       ) : (
         <div className="space-y-3">
           {orders.map((o) => {
-            const items = itemsStmt.all(o.id) as OrderItem[];
+            const items = itemsStmt.all(o.id) as (OrderItem & { product_image: string | null })[];
             return (
               <div key={o.id} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -155,9 +154,55 @@ export default async function AdminOrders({
                   <span className="font-medium">{o.customer_name}</span> · {o.phone} · {o.address}
                   {o.note && <span className="text-zinc-500"> · 📝 {o.note}</span>}
                 </div>
-                <div className="mt-2 text-sm text-zinc-400">
-                  {items.map(itemLabel).join(", ")} —{" "}
-                  <span className="font-bold text-lime-400">{tugrug(o.total)}</span>
+                <div className="mt-3 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/60">
+                  {items.map((i) => (
+                    <div
+                      key={i.id}
+                      className="flex items-center gap-3 border-b border-zinc-800/60 px-3 py-2 last:border-b-0"
+                    >
+                      {i.product_image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={i.product_image}
+                          alt=""
+                          className="h-11 w-11 shrink-0 rounded-lg bg-zinc-800 object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-zinc-800 text-zinc-600">
+                          👟
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium text-zinc-200">
+                          {i.product_name}
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap gap-1.5 text-xs">
+                          {i.size && (
+                            <span className="rounded-md bg-zinc-800 px-1.5 py-0.5 text-zinc-300">
+                              Размер: {i.size}
+                            </span>
+                          )}
+                          {i.color && (
+                            <span className="rounded-md bg-zinc-800 px-1.5 py-0.5 text-zinc-300">
+                              Өнгө: {i.color}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right text-sm">
+                        <div className="text-xs text-zinc-500">
+                          {tugrug(i.price)} × {i.qty}ш
+                        </div>
+                        <div className="font-semibold text-zinc-200">{tugrug(i.price * i.qty)}</div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between bg-zinc-900/80 px-3 py-2 text-sm">
+                    <span className="text-zinc-400">
+                      Нийт {items.reduce((s, i) => s + i.qty, 0)}ш бараа
+                    </span>
+                    <span className="font-bold text-lime-400">{tugrug(o.total)}</span>
+                  </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {o.status === "pending" && (

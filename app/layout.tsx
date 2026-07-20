@@ -16,6 +16,8 @@ import {
 import "./globals.css";
 import { CartProvider } from "@/components/CartProvider";
 import Header from "@/components/Header";
+import Toast from "@/components/Toast";
+import Link from "next/link";
 import { getSettings } from "@/lib/db";
 import { mnYear } from "@/lib/format";
 
@@ -70,6 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="antialiased">
         <CartProvider>
           <Header storeName={storeName} logo={settings.store_logo || ""} />
+          <Toast />
           <main className="mx-auto min-h-[80vh] max-w-6xl px-4 py-8">{children}</main>
           <footer className="mt-16 border-t border-zinc-800 bg-zinc-950">
             <div className="mx-auto max-w-6xl px-4 py-10">
@@ -88,6 +91,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     Холбоо барих
                   </div>
                   <div>Утас: {settings.phone}</div>
+                  <Link
+                    href="/faq"
+                    className="mt-2 inline-block text-zinc-400 transition hover:text-lime-400"
+                  >
+                    ❓ Түгээмэл асуулт
+                  </Link>
                 </div>
               </div>
               <div className="mt-8 border-t border-zinc-900 pt-5 text-xs text-zinc-600">

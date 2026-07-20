@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useCart } from "./CartProvider";
+import { showToast } from "./Toast";
 import type { Product } from "@/lib/db";
 import { splitList, variantKey, parseVariantsOut, allCombos, parseColorImages, priceInfo } from "@/lib/format";
 
@@ -13,6 +15,7 @@ export default function AddToCart({
   onColorChange?: (color: string) => void;
 }) {
   const { add } = useCart();
+  const router = useRouter();
   const sizes = splitList(p.sizes);
   const colors = splitList(p.colors);
   const outSet = parseVariantsOut(p.variants_out);
@@ -33,7 +36,6 @@ export default function AddToCart({
     return avail.length === 1 ? avail[0] : "";
   });
   const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
   const [warn, setWarn] = useState("");
 
   // Сонгосон өнгийг эцэг компонентод мэдэгдэнэ (зураг солих г.м.)
@@ -85,8 +87,9 @@ export default function AddToCart({
       },
       qty
     );
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
+    // Мэдэгдэл нь root layout-ын Toast-д харагддаг тул нүүр рүү шилжсэн ч алга болохгүй
+    showToast("✓ Таны бараа амжилттай сагсанд хийгдлээ");
+    router.push("/");
   };
 
   return (
@@ -195,7 +198,7 @@ export default function AddToCart({
           onClick={handleAdd}
           className="rounded-xl bg-lime-400 px-8 py-3 font-bold uppercase tracking-wide text-zinc-950 transition hover:bg-lime-300 hover:shadow-[0_0_24px_rgba(163,230,53,0.4)]"
         >
-          {added ? "✓ Нэмэгдлээ" : "Сагсанд нэмэх"}
+          Сагсанд нэмэх
         </button>
       </div>
     </div>

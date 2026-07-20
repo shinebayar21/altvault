@@ -22,6 +22,12 @@ export async function POST(req: NextRequest) {
 
   if (!customer_name?.trim() || !phone?.trim() || !address?.trim())
     return NextResponse.json({ error: "Нэр, утас, хаягаа бөглөнө үү" }, { status: 400 });
+  // Утас заавал яг 8 оронтой тоо байна
+  if (!/^\d{8}$/.test(phone.replace(/[\s\-]/g, "")))
+    return NextResponse.json(
+      { error: "Таны утасны дугаар буруу байна — 8 оронтой тоо оруулна уу" },
+      { status: 400 }
+    );
   if (!Array.isArray(items) || items.length === 0)
     return NextResponse.json({ error: "Сагс хоосон байна" }, { status: 400 });
 

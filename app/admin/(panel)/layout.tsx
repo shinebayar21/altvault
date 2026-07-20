@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
 import { logoutAction } from "@/lib/actions";
+import AdminOrderWatch from "@/components/AdminOrderWatch";
 import Link from "next/link";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -19,9 +20,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </Link>
           <Link
             href="/admin/orders"
-            className="block rounded-xl px-3 py-2 text-zinc-300 transition hover:bg-zinc-800 hover:text-lime-400"
+            className="flex items-center gap-2 rounded-xl px-3 py-2 text-zinc-300 transition hover:bg-zinc-800 hover:text-lime-400"
           >
             📦 Захиалгууд
+            <AdminOrderWatch />
           </Link>
           <Link
             href="/admin/products"
