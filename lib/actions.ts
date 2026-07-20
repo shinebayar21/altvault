@@ -107,6 +107,15 @@ async function saveImage(file: File | null): Promise<string | null> {
   return `/api/uploads/${name}`;
 }
 
+/** Барааны категориудыг бүхэлд нь солино (байхгүй category id чимээгүй алгасагдана) */
+function syncProductCategories(productId: number, categoryIds: number[]) {
+  db.prepare("DELETE FROM product_categories WHERE product_id = ?").run(productId);
+  const ins = db.prepare(
+    "INSERT OR IGNORE INTO product_categories (product_id, category_id) SELECT ?, id FROM categories WHERE id = ?"
+  );
+  for (const cid of categoryIds) ins.run(productId, cid);
+}
+
 export async function saveProduct(
   _prev: { error?: string },
   formData: FormData
@@ -116,7 +125,15 @@ export async function saveProduct(
   const name = (formData.get("name") as string)?.trim();
   const description = ((formData.get("description") as string) || "").trim();
   const price = Math.floor(Number(formData.get("price")));
-  const category_id = Number(formData.get("category_id")) || null;
+  // Олон категори — checkbox-уудаас (product_categories хүснэгтэд хадгална)
+  const categoryIds = [
+    ...new Set(
+      formData
+        .getAll("category_ids")
+        .map(Number)
+        .filter((n) => Number.isInteger(n) && n > 0)
+    ),
+  ];
   const active = formData.get("active") ? 1 : 0;
   const normList = (v: FormDataEntryValue | null) =>
     String(v || "")
@@ -249,17 +266,21 @@ export async function saveProduct(
     );
     if (image) {
       db.prepare(
-        "UPDATE products SET name=?, description=?, price=?, sale_price=?, sizes=?, colors=?, variants_out=?, color_images=?, color_prices=?, category_id=?, active=?, image=? WHERE id=?"
-      ).run(name, description, price, sale_price, sizes, colors, variants_out, color_images, color_prices, category_id, active, image, id);
+        "UPDATE products SET name=?, description=?, price=?, sale_price=?, sizes=?, colors=?, variants_out=?, color_images=?, color_prices=?, active=?, image=? WHERE id=?"
+      ).run(name, description, price, sale_price, sizes, colors, variants_out, color_images, color_prices, active, image, id);
     } else {
       db.prepare(
-        "UPDATE products SET name=?, description=?, price=?, sale_price=?, sizes=?, colors=?, variants_out=?, color_images=?, color_prices=?, category_id=?, active=? WHERE id=?"
-      ).run(name, description, price, sale_price, sizes, colors, variants_out, color_images, color_prices, category_id, active, id);
+        "UPDATE products SET name=?, description=?, price=?, sale_price=?, sizes=?, colors=?, variants_out=?, color_images=?, color_prices=?, active=? WHERE id=?"
+      ).run(name, description, price, sale_price, sizes, colors, variants_out, color_images, color_prices, active, id);
     }
+    syncProductCategories(id, categoryIds);
   } else {
-    db.prepare(
-      "INSERT INTO products (name, description, price, sale_price, sizes, colors, color_images, color_prices, category_id, active, image) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
-    ).run(name, description, price, sale_price, sizes, colors, color_images, color_prices, category_id, active, image || "/img/placeholder.svg");
+    const info = db
+      .prepare(
+        "INSERT INTO products (name, description, price, sale_price, sizes, colors, color_images, color_prices, active, image) VALUES (?,?,?,?,?,?,?,?,?,?)"
+      )
+      .run(name, description, price, sale_price, sizes, colors, color_images, color_prices, active, image || "/img/placeholder.svg");
+    syncProductCategories(Number(info.lastInsertRowid), categoryIds);
   }
   // DB шинэчлэгдсэн тул хэрэггүй болсон файлуудыг устгана
   for (const u of removedUploads) deleteUploadIfUnused(u);
@@ -387,7 +408,7 @@ export async function deleteCategory(formData: FormData) {
   const prev = db.prepare("SELECT image FROM categories WHERE id = ?").get(id) as
     | { image: string }
     | undefined;
-  // FK: ON DELETE SET NULL — бараанууд устахгүй, "Категоригүй" болно
+  // FK: product_categories CASCADE — бараанууд устахгүй, зөвхөн энэ категорийн холбоос хасагдана
   db.prepare("DELETE FROM categories WHERE id = ?").run(id);
   deleteUploadIfUnused(prev?.image);
   revalidateCategories();

@@ -12,9 +12,12 @@ const QUICK_SIZES = ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44",
 export default function ProductForm({
   product,
   categories,
+  categoryIds,
 }: {
   product?: Product;
   categories: Category[];
+  /** Барааны одоо хамаарч буй категориудын id (засах хуудаснаас ирдэг) */
+  categoryIds?: number[];
 }) {
   const [state, action, pending] = useActionState<{ error?: string }, FormData>(saveProduct, {});
   // Өнгөнүүд — нэг нэгээр нэмдэг жагсаалт; orig = DB дахь хуучин нэр
@@ -435,15 +438,27 @@ export default function ProductForm({
         )}
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-300">Категори</label>
-          <select name="category_id" defaultValue={product?.category_id ?? ""} className={input}>
-            <option value="">Категоригүй</option>
+          <label className="mb-1 block text-sm font-medium text-zinc-300">
+            Категори (олныг сонгож болно)
+          </label>
+          <div className="flex flex-wrap gap-2">
             {categories.map((c) => (
-              <option key={c.id} value={c.id}>
+              <label
+                key={c.id}
+                className="flex cursor-pointer items-center gap-2 rounded-full border border-zinc-700 bg-zinc-950 px-3.5 py-1.5 text-sm font-semibold text-zinc-300 transition hover:border-zinc-500 has-[:checked]:border-lime-400 has-[:checked]:bg-lime-400/10 has-[:checked]:text-lime-400"
+              >
+                <input
+                  type="checkbox"
+                  name="category_ids"
+                  value={c.id}
+                  defaultChecked={categoryIds?.includes(c.id)}
+                  className="h-4 w-4 accent-lime-400"
+                />
                 {c.name}
-              </option>
+              </label>
             ))}
-          </select>
+          </div>
+          <p className="mt-1.5 text-xs text-zinc-500">Юу ч сонгохгүй бол «Категоригүй» бараа болно.</p>
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-zinc-300">

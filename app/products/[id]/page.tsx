@@ -9,8 +9,12 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const p = db
     .prepare(
-      `SELECT p.*, c.name as category_name FROM products p
-       LEFT JOIN categories c ON c.id = p.category_id WHERE p.id = ? AND p.active = 1`
+      `SELECT p.*, (
+         SELECT GROUP_CONCAT(c2.name, ', ')
+         FROM product_categories pc JOIN categories c2 ON c2.id = pc.category_id
+         WHERE pc.product_id = p.id
+       ) AS category_names
+       FROM products p WHERE p.id = ? AND p.active = 1`
     )
     .get(Number(id)) as Product | undefined;
 

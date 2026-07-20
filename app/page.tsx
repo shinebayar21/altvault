@@ -13,12 +13,22 @@ export default async function Home({
   const { cat, q } = await searchParams;
   const categories = db.prepare("SELECT * FROM categories ORDER BY id").all() as Category[];
 
-  let sql = `SELECT p.*, c.name as category_name FROM products p
-             LEFT JOIN categories c ON c.id = p.category_id
+  // Категорийн нэрсийг subquery-ээр авдаг тул нэг бараа олон категоритой ч
+  // жагсаалтад давхардахгүй; шүүлтийг EXISTS-ээр хийнэ
+  let sql = `SELECT p.*, (
+               SELECT GROUP_CONCAT(c2.name, ', ')
+               FROM product_categories pc JOIN categories c2 ON c2.id = pc.category_id
+               WHERE pc.product_id = p.id
+             ) AS category_names
+             FROM products p
              WHERE p.active = 1`;
   const params: (string | number)[] = [];
   if (cat) {
-    sql += " AND c.slug = ?";
+    sql += ` AND EXISTS (
+               SELECT 1 FROM product_categories pc
+               JOIN categories c ON c.id = pc.category_id
+               WHERE pc.product_id = p.id AND c.slug = ?
+             )`;
     params.push(cat);
   }
   if (q) {

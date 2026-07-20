@@ -10,7 +10,7 @@ type CatRow = Category & { product_count: number };
 export default async function AdminCategories() {
   const cats = db
     .prepare(
-      `SELECT c.*, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count
+      `SELECT c.*, (SELECT COUNT(*) FROM product_categories pc WHERE pc.category_id = c.id) AS product_count
        FROM categories c ORDER BY c.id`
     )
     .all() as CatRow[];
@@ -37,7 +37,7 @@ export default async function AdminCategories() {
 
       <div className="mb-3 text-xs text-zinc-500">
         Нэрийг өөрчлөөд «Хадгалах» дарна. Зураг оруулбал нүүр хуудасны категорийн товч дээр харагдана.
-        Категори устгахад бараанууд устахгүй — «Категоригүй» болно.
+        Категори устгахад бараанууд устахгүй — зөвхөн энэ категори бараанаас хасагдана.
       </div>
 
       <div className="divide-y divide-zinc-800 rounded-2xl border border-zinc-800 bg-zinc-900">
@@ -77,7 +77,7 @@ export default async function AdminCategories() {
             <form action={deleteCategory}>
               <input type="hidden" name="id" value={c.id} />
               <ConfirmSubmit
-                message={`"${c.name}" категорийг устгах уу? ${c.product_count} бараа "Категоригүй" болно.`}
+                message={`"${c.name}" категорийг устгах уу? ${c.product_count} бараанаас зөвхөн энэ категори хасагдана, бараа устахгүй.`}
                 className="rounded-xl border border-zinc-700 px-3 py-1.5 text-sm text-red-400 transition hover:border-red-400"
               >
                 Устгах

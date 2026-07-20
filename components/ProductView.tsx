@@ -77,9 +77,16 @@ export default function ProductView({ p }: { p: Product }) {
         )}
       </div>
       <div>
-        {p.category_name && (
-          <div className="mb-3 inline-block rounded-full border border-lime-400/40 bg-lime-400/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-lime-400">
-            {p.category_name}
+        {p.category_names && (
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {p.category_names.split(", ").map((n) => (
+              <span
+                key={n}
+                className="inline-block rounded-full border border-lime-400/40 bg-lime-400/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-lime-400"
+              >
+                {n}
+              </span>
+            ))}
           </div>
         )}
         <h1 className="font-display text-3xl font-extrabold uppercase leading-tight">{p.name}</h1>

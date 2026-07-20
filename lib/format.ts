@@ -2,6 +2,25 @@ export function tugrug(n: number): string {
   return n.toLocaleString("mn-MN") + "₮";
 }
 
+// ----- Монголын цаг (Улаанбаатар, UTC+8, зуны цаггүй) -----
+// DB-д datetime('now') буюу UTC 'YYYY-MM-DD HH:MM:SS' хадгалагддаг
+const MN_DT = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "Asia/Ulaanbaatar",
+  dateStyle: "short",
+  timeStyle: "short",
+});
+
+/** UTC 'YYYY-MM-DD HH:MM:SS' → Монголын цагаар 'YYYY-MM-DD HH:mm' */
+export function mnDateTime(utc: string): string {
+  const d = new Date(utc.replace(" ", "T") + "Z"); // "Z"-гүй бол локал цаг гэж уншина
+  return isNaN(d.getTime()) ? utc : MN_DT.format(d);
+}
+
+/** Одоогийн он, Монголын цагаар (footer-т) */
+export function mnYear(): string {
+  return new Intl.DateTimeFormat("en", { timeZone: "Asia/Ulaanbaatar", year: "numeric" }).format(new Date());
+}
+
 /** "40,41,42" маягийн утгыг массив болгоно (client талд ч ашиглагдана) */
 export function splitList(v: string | null | undefined): string[] {
   return (v || "")

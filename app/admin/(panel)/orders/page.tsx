@@ -1,5 +1,5 @@
 import db, { Order, OrderItem } from "@/lib/db";
-import { tugrug, STATUS_LABEL, STATUS_COLOR } from "@/lib/format";
+import { tugrug, mnDateTime, STATUS_LABEL, STATUS_COLOR } from "@/lib/format";
 import { setOrderStatus } from "@/lib/actions";
 import OrderStatusSelect from "@/components/OrderStatusSelect";
 import Link from "next/link";
@@ -23,13 +23,13 @@ export default async function AdminOrders({
     sql += " AND status = ?";
     params.push(status);
   }
-  // created_at нь 'YYYY-MM-DD HH:MM:SS' тул эхний 10 тэмдэгт нь он-сар-өдөр
+  // created_at нь UTC тул Монголын огноо (+8h) руу хөрвүүлж харьцуулна
   if (fromOk) {
-    sql += " AND substr(created_at, 1, 10) >= ?";
+    sql += " AND date(created_at, '+8 hours') >= ?";
     params.push(fromOk);
   }
   if (toOk) {
-    sql += " AND substr(created_at, 1, 10) <= ?";
+    sql += " AND date(created_at, '+8 hours') <= ?";
     params.push(toOk);
   }
   if (phoneDigits) {
@@ -149,7 +149,7 @@ export default async function AdminOrders({
                       {o.payment_method === "qpay" ? "QPay" : "Данс"}
                     </span>
                   </div>
-                  <span className="text-sm text-zinc-500">{o.created_at}</span>
+                  <span className="text-sm text-zinc-500">{mnDateTime(o.created_at)}</span>
                 </div>
                 <div className="mt-2 text-sm text-zinc-300">
                   <span className="font-medium">{o.customer_name}</span> · {o.phone} · {o.address}

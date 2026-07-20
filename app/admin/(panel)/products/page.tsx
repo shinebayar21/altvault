@@ -10,8 +10,12 @@ export const dynamic = "force-dynamic";
 export default async function AdminProducts() {
   const products = db
     .prepare(
-      `SELECT p.*, c.name as category_name FROM products p
-       LEFT JOIN categories c ON c.id = p.category_id ORDER BY p.created_at DESC`
+      `SELECT p.*, (
+         SELECT GROUP_CONCAT(c2.name, ', ')
+         FROM product_categories pc JOIN categories c2 ON c2.id = pc.category_id
+         WHERE pc.product_id = p.id
+       ) AS category_names
+       FROM products p ORDER BY p.created_at DESC`
     )
     .all() as Product[];
 
@@ -63,7 +67,7 @@ export default async function AdminProducts() {
                   )}
                 </div>
                 <div className="truncate text-xs text-zinc-500">
-                  {p.category_name || "Категоригүй"}
+                  {p.category_names || "Категоригүй"}
                 </div>
               </div>
               <div className="shrink-0 text-right text-sm font-medium">

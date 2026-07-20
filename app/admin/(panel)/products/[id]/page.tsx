@@ -11,10 +11,15 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
     | undefined;
   if (!product) notFound();
   const categories = db.prepare("SELECT * FROM categories ORDER BY name").all() as Category[];
+  const categoryIds = (
+    db.prepare("SELECT category_id FROM product_categories WHERE product_id = ?").all(product.id) as {
+      category_id: number;
+    }[]
+  ).map((r) => r.category_id);
   return (
     <div>
       <h1 className="font-display mb-4 text-xl font-extrabold uppercase">Бараа засах</h1>
-      <ProductForm product={product} categories={categories} />
+      <ProductForm product={product} categories={categories} categoryIds={categoryIds} />
     </div>
   );
 }

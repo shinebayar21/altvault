@@ -17,6 +17,7 @@ import "./globals.css";
 import { CartProvider } from "@/components/CartProvider";
 import Header from "@/components/Header";
 import { getSettings } from "@/lib/db";
+import { mnYear } from "@/lib/format";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
 const unbounded = Unbounded({ subsets: ["latin", "cyrillic"], variable: "--font-unbounded" });
@@ -90,7 +91,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               </div>
               <div className="mt-8 border-t border-zinc-900 pt-5 text-xs text-zinc-600">
-                © {new Date().getFullYear()} {storeName} — Бүх эрх хуулиар хамгаалагдсан
+                © {mnYear()} {storeName} — Бүх эрх хуулиар хамгаалагдсан
               </div>
             </div>
           </footer>

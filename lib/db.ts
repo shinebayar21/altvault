@@ -81,6 +81,13 @@ CREATE TABLE IF NOT EXISTS banners (
   pos_y TEXT NOT NULL DEFAULT 'center',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS product_categories (
+  product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+  PRIMARY KEY (product_id, category_id)
+);
+CREATE INDEX IF NOT EXISTS idx_pc_category ON product_categories(category_id);
 `);
 
 // ----- migration: хуучин DB-д шинэ багана нэмэх -----
@@ -195,6 +202,15 @@ if (setCount === 0) {
   ins.run("bank_holder", "Дэлгүүрийн эзний нэр");
   ins.run("phone", "9911-2233");
 }
+
+// Нэг барааг олон категорид: хуучин category_id-г холбоос хүснэгт рүү зөөнө.
+// Зөөсний дараа NULL болгодог тул дахин ажиллахад юу ч хийхгүй (идемпотент).
+// Seed-ийн дараа байрладаг тул шинэ DB-ийн seed бараанууд мөн энд холбогдоно.
+db.exec(`
+  INSERT OR IGNORE INTO product_categories (product_id, category_id)
+    SELECT id, category_id FROM products WHERE category_id IS NOT NULL;
+  UPDATE products SET category_id = NULL WHERE category_id IS NOT NULL;
+`);
 });
 initDb.immediate();
 
@@ -219,10 +235,10 @@ export type Product = {
   variants_out: string;
   color_images: string;
   color_prices: string;
-  category_id: number | null;
+  category_id: number | null; // хуучин багана — одоо ашиглагдахгүй, product_categories хүснэгтэд
   active: number;
   created_at: string;
-  category_name?: string;
+  category_names?: string | null; // GROUP_CONCAT(', ') — жагсаалтын query-ээс ирдэг
 };
 
 export type Category = { id: number; name: string; slug: string; image: string };
