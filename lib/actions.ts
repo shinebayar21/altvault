@@ -14,6 +14,7 @@ import {
   BANNER_POS_Y,
   parseBannerSegments,
   segmentsToText,
+  STATUS_LABEL,
 } from "@/lib/format";
 import { makeToken, requireAdmin, AUTH_COOKIE } from "@/lib/auth";
 import { cookies } from "next/headers";
@@ -56,7 +57,7 @@ export async function logoutAction() {
 // Үлдэгдэл тооцдоггүй (захиалга авч өгдөг сайт) тул статус солиход stock-д нөлөөлөхгүй
 export async function setOrderStatus(orderId: number, status: string) {
   await requireAdmin();
-  if (!["pending", "paid", "delivering", "delivered", "cancelled"].includes(status)) return;
+  if (!Object.keys(STATUS_LABEL).includes(status)) return;
   const order = db.prepare("SELECT id FROM orders WHERE id = ?").get(orderId);
   if (!order) return;
   db.prepare("UPDATE orders SET status = ? WHERE id = ?").run(status, orderId);

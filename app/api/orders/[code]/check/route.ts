@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import db, { Order } from "@/lib/db";
 import { checkPayment, qpayEnabled } from "@/lib/qpay";
 import { wireEnabled, wirePaid } from "@/lib/wire";
+import { PAID_STATUSES } from "@/lib/format";
 
 export async function POST(_req: NextRequest, ctx: { params: Promise<{ code: string }> }) {
   const { code } = await ctx.params;
@@ -10,8 +11,7 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ code: str
     | undefined;
   if (!order) return NextResponse.json({ error: "Захиалга олдсонгүй" }, { status: 404 });
 
-  if (order.status === "paid" || order.status === "delivered")
-    return NextResponse.json({ paid: true });
+  if (PAID_STATUSES.includes(order.status)) return NextResponse.json({ paid: true });
 
   if (order.payment_method === "qpay" && order.qpay_invoice_id) {
     let paid = false;

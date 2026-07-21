@@ -200,15 +200,26 @@ export function allCombos(colors: string[], sizes: string[]): string[] {
 export const STATUS_LABEL: Record<string, string> = {
   pending: "Төлбөр хүлээгдэж буй",
   paid: "Төлөгдсөн",
+  ordered: "Захиалсан",
+  in_transit: "Замд яваа",
+  at_warehouse: "Агуулах дээр ирсэн",
   delivering: "Хүргэлтэнд гарсан",
   delivered: "Хүргэгдсэн",
   cancelled: "Цуцлагдсан",
+  returned: "Буцаасан",
 };
 
 export const STATUS_COLOR: Record<string, string> = {
   pending: "bg-amber-400/15 text-amber-400 border border-amber-400/30",
   paid: "bg-lime-400/15 text-lime-400 border border-lime-400/30",
+  ordered: "bg-cyan-400/15 text-cyan-400 border border-cyan-400/30",
+  in_transit: "bg-blue-400/15 text-blue-400 border border-blue-400/30",
+  at_warehouse: "bg-teal-400/15 text-teal-400 border border-teal-400/30",
   delivering: "bg-violet-400/15 text-violet-400 border border-violet-400/30",
   delivered: "bg-sky-400/15 text-sky-400 border border-sky-400/30",
   cancelled: "bg-red-400/15 text-red-400 border border-red-400/30",
+  returned: "bg-rose-400/15 text-rose-400 border border-rose-400/30",
 };
+
+/** Төлбөр орсон гэж тооцох төлвүүд (цуцлагдсан/буцаасан орохгүй) */
+export const PAID_STATUSES = ["paid", "ordered", "in_transit", "at_warehouse", "delivering", "delivered"];

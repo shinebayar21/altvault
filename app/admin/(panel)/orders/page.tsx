@@ -6,6 +6,20 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
+// Төлөв бүрийн дараагийн алхамын товч (дурын шилжилтэд OrderStatusSelect бий)
+const NEXT_STEP: Record<string, { next: string; label: string; cls: string }> = {
+  pending: { next: "paid", label: "✓ Төлбөр баталгаажуулах", cls: "bg-lime-400 font-bold text-zinc-950 hover:bg-lime-300" },
+  paid: { next: "ordered", label: "📦 Захиалсан болгох", cls: "bg-cyan-500 font-bold text-white hover:bg-cyan-400" },
+  ordered: { next: "in_transit", label: "✈️ Замд гарсан", cls: "bg-blue-500 font-bold text-white hover:bg-blue-400" },
+  in_transit: { next: "at_warehouse", label: "🏭 Агуулахад ирсэн", cls: "bg-teal-500 font-bold text-white hover:bg-teal-400" },
+  at_warehouse: { next: "delivering", label: "🚚 Хүргэлтэнд гаргах", cls: "bg-violet-500 font-bold text-white hover:bg-violet-400" },
+  delivering: { next: "delivered", label: "✅ Хүргэгдсэн болгох", cls: "bg-sky-500 font-bold text-white hover:bg-sky-400" },
+  delivered: { next: "returned", label: "↩ Буцаасан болгох", cls: "border border-rose-400/40 font-semibold text-rose-400 hover:bg-rose-400/10" },
+};
+
+// Цуцлах боломжтой (хүргэлтэнд гараагүй) төлвүүд
+const CANCELLABLE = ["pending", "paid", "ordered", "in_transit", "at_warehouse"];
+
 export default async function AdminOrders({
   searchParams,
 }: {
@@ -60,9 +74,13 @@ export default async function AdminOrders({
     { key: "", label: "Бүгд" },
     { key: "pending", label: "Хүлээгдэж буй" },
     { key: "paid", label: "Төлөгдсөн" },
+    { key: "ordered", label: "Захиалсан" },
+    { key: "in_transit", label: "Замд яваа" },
+    { key: "at_warehouse", label: "Агуулахад" },
     { key: "delivering", label: "Хүргэлтэнд" },
     { key: "delivered", label: "Хүргэгдсэн" },
     { key: "cancelled", label: "Цуцлагдсан" },
+    { key: "returned", label: "Буцаасан" },
   ];
 
   return (
@@ -205,35 +223,21 @@ export default async function AdminOrders({
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {o.status === "pending" && (
-                    <form action={setOrderStatus.bind(null, o.id, "paid")}>
-                      <button className="rounded-xl bg-lime-400 px-4 py-1.5 text-sm font-bold text-zinc-950 transition hover:bg-lime-300">
-                        ✓ Төлбөр баталгаажуулах
+                  {NEXT_STEP[o.status] && (
+                    <form action={setOrderStatus.bind(null, o.id, NEXT_STEP[o.status].next)}>
+                      <button className={`rounded-xl px-4 py-1.5 text-sm transition ${NEXT_STEP[o.status].cls}`}>
+                        {NEXT_STEP[o.status].label}
                       </button>
                     </form>
                   )}
-                  {o.status === "paid" && (
-                    <form action={setOrderStatus.bind(null, o.id, "delivering")}>
-                      <button className="rounded-xl bg-violet-500 px-4 py-1.5 text-sm font-bold text-white transition hover:bg-violet-400">
-                        🚚 Хүргэлтэнд гаргах
-                      </button>
-                    </form>
-                  )}
-                  {o.status === "delivering" && (
-                    <form action={setOrderStatus.bind(null, o.id, "delivered")}>
-                      <button className="rounded-xl bg-sky-500 px-4 py-1.5 text-sm font-bold text-white transition hover:bg-sky-400">
-                        ✅ Хүргэгдсэн болгох
-                      </button>
-                    </form>
-                  )}
-                  {(o.status === "pending" || o.status === "paid") && (
+                  {CANCELLABLE.includes(o.status) && (
                     <form action={setOrderStatus.bind(null, o.id, "cancelled")}>
                       <button className="rounded-xl border border-red-400/40 px-4 py-1.5 text-sm font-semibold text-red-400 transition hover:bg-red-400/10">
                         Цуцлах
                       </button>
                     </form>
                   )}
-                  {o.status === "cancelled" && (
+                  {(o.status === "cancelled" || o.status === "returned") && (
                     <form action={setOrderStatus.bind(null, o.id, "pending")}>
                       <button className="rounded-xl border border-zinc-700 px-4 py-1.5 text-sm font-semibold text-zinc-300 transition hover:bg-zinc-800">
                         Сэргээх

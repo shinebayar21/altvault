@@ -10,7 +10,7 @@ export default async function AdminDashboard() {
     paid: (db.prepare("SELECT COUNT(*) c FROM orders WHERE status='paid'").get() as { c: number }).c,
     products: (db.prepare("SELECT COUNT(*) c FROM products WHERE active=1").get() as { c: number }).c,
     revenue: (
-      db.prepare("SELECT COALESCE(SUM(total),0) s FROM orders WHERE status IN ('paid','delivered')").get() as { s: number }
+      db.prepare("SELECT COALESCE(SUM(total),0) s FROM orders WHERE status IN ('paid','ordered','in_transit','at_warehouse','delivering','delivered')").get() as { s: number }
     ).s,
   };
 

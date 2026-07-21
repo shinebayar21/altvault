@@ -1,5 +1,5 @@
 import db, { Order, OrderItem, getSettings } from "@/lib/db";
-import { tugrug, STATUS_LABEL, STATUS_COLOR } from "@/lib/format";
+import { tugrug, STATUS_LABEL, STATUS_COLOR, PAID_STATUSES } from "@/lib/format";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import CheckPaymentButton from "@/components/CheckPaymentButton";
@@ -19,7 +19,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
     .all(order.id) as OrderItem[];
   const s = getSettings();
 
-  const isPaid = ["paid", "delivering", "delivered"].includes(order.status);
+  const isPaid = PAID_STATUSES.includes(order.status);
 
   // qpay_url: шинэ формат нь JSON массив [{name,link,logo}], хуучин нь ганц deeplink мөр
   let payLinks: { name: string; link: string; logo?: string }[] = [];
@@ -144,7 +144,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
           </div>
         )}
 
-        {order.status === "paid" && (
+        {isPaid && order.status !== "delivered" && (
           <div className="mt-4 rounded-2xl border border-lime-400/30 bg-lime-400/10 p-4 text-sm text-lime-300">
             ✅ Төлбөр баталгаажсан. Бид таны захиалгыг бэлдэж, хүргэлтэд гаргана.
           </div>
