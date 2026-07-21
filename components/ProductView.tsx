@@ -35,7 +35,7 @@ export default function ProductView({ p }: { p: Product }) {
       <div ref={galleryRef} className="scroll-mt-20">
         <div
           className="relative cursor-zoom-in overflow-hidden rounded-2xl"
-          onMouseMove={(e) => {
+          onPointerMove={(e) => {
             const r = e.currentTarget.getBoundingClientRect();
             setZoom({
               x: ((e.clientX - r.left) / r.width) * 100,
@@ -43,7 +43,10 @@ export default function ProductView({ p }: { p: Product }) {
               on: true,
             });
           }}
-          onMouseLeave={() => setZoom((z) => ({ ...z, on: false }))}
+          onPointerLeave={() => setZoom((z) => ({ ...z, on: false }))}
+          // Хүрэлтийн үед mouseleave ирдэггүй тул хуруу авахад заавал буцаана
+          onPointerUp={() => setZoom((z) => ({ ...z, on: false }))}
+          onPointerCancel={() => setZoom((z) => ({ ...z, on: false }))}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
